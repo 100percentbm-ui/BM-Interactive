@@ -226,6 +226,17 @@
         </div>
       </div>
 
+      <div class="row2">
+        <div>
+          <label>Rebirths</label>
+          <input type="number" id="f-rebirths" min="0" step="1" placeholder="0">
+        </div>
+        <div>
+          <label>Super Rebirths</label>
+          <input type="number" id="f-superrebirths" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+
       <label>Milestone / Unlock</label>
       <input type="text" id="f-milestone" placeholder="e.g. Unlocked Tier 3 factory">
 
@@ -289,6 +300,8 @@ const columns = [
   { key: 'droidType', label: 'Droid' },
   { key: 'crafted', label: 'Crafted' },
   { key: 'sold', label: 'Sold' },
+  { key: 'rebirths', label: 'Rebirths' },
+  { key: 'superRebirths', label: 'Super Rebirths' },
   { key: 'milestone', label: 'Milestone', editable: true },
   { key: 'notes', label: 'Notes', editable: true },
 ];
@@ -317,6 +330,8 @@ function renderStats() {
     ['Chips', fmt(t.totalChips)],
     ['Droids Crafted', fmt(t.totalCrafted)],
     ['Droids Sold', fmt(t.totalSold)],
+    ['Rebirths', fmt(t.totalRebirths)],
+    ['Super Rebirths', fmt(t.totalSuperRebirths)],
     ['Best Rate', t.best ? fmt(computeRate(t.best)) + ' cr/min (' + t.best.date + ')' : '-'],
   ];
 
@@ -396,6 +411,8 @@ function renderTable() {
         <td>${escapeHtml(e.droidType) || '-'}</td>
         <td>${fmt(e.crafted)}</td>
         <td>${fmt(e.sold)}</td>
+        <td>${fmt(e.rebirths)}</td>
+        <td>${fmt(e.superRebirths)}</td>
         ${cell(colMap.milestone)}
         ${cell(colMap.notes)}
         <td><button class="del-btn" data-id="${e.id}" title="Delete">&#10005;</button></td>
@@ -475,6 +492,8 @@ document.getElementById('entry-form').addEventListener('submit', (ev) => {
     droidType: document.getElementById('f-droidtype').value.trim(),
     crafted: parseFloat(document.getElementById('f-crafted').value) || 0,
     sold: parseFloat(document.getElementById('f-sold').value) || 0,
+    rebirths: parseFloat(document.getElementById('f-rebirths').value) || 0,
+    superRebirths: parseFloat(document.getElementById('f-superrebirths').value) || 0,
     milestone: document.getElementById('f-milestone').value.trim(),
     notes: document.getElementById('f-notes').value.trim(),
   };
@@ -494,10 +513,10 @@ document.getElementById('export-json').addEventListener('click', () => {
 });
 
 document.getElementById('export-csv').addEventListener('click', () => {
-  const headers = ['date','time','playtime','credits','rate','crystals','chips','droidType','crafted','sold','milestone','notes'];
+  const headers = ['date','time','playtime','credits','rate','crystals','chips','droidType','crafted','sold','rebirths','superRebirths','milestone','notes'];
   const lines = [headers.join(',')];
   entries.forEach(e => {
-    const row = [e.date, e.time, e.playtime, e.credits, computeRate(e).toFixed(2), e.crystals, e.chips, e.droidType, e.crafted, e.sold, e.milestone, e.notes]
+    const row = [e.date, e.time, e.playtime, e.credits, computeRate(e).toFixed(2), e.crystals, e.chips, e.droidType, e.crafted, e.sold, e.rebirths, e.superRebirths, e.milestone, e.notes]
       .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`);
     lines.push(row.join(','));
   });

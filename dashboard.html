@@ -222,11 +222,15 @@ function renderStats() {
   const container = document.getElementById('stats-container');
 
   const manualHtml = `
-    <div class="section-label">Manual Totals <span style="color:var(--muted); text-transform:none; letter-spacing:0;">(your own numbers, not calculated from the log)</span></div>
+    <div class="section-label">Current Totals <span style="color:var(--muted); text-transform:none; letter-spacing:0;">(your own numbers, not calculated from the log)</span></div>
     <div class="stats-row">
-      ${manualStatField('credits', 'Total Credits')}
-      ${manualStatField('chips', 'Total Chips')}
-      ${manualStatField('crystals', 'Total Nova Crystals')}
+      ${manualStatField('credits', 'Current Credits')}
+      ${manualStatField('chips', 'Current Chips')}
+      ${manualStatField('crystals', 'Current Nova Crystals')}
+    </div>
+    <div class="stats-row" style="margin-top:12px;">
+      ${manualStatField('rebirths', 'Current Rebirths')}
+      ${manualStatField('superRebirths', 'Current Super Rebirths')}
     </div>
   `;
 
@@ -242,7 +246,7 @@ function renderStats() {
     : `${totals.firstDate} → ${totals.lastDate}`;
 
   container.innerHTML = manualHtml + `
-    <div class="section-label">Economy</div>
+    <div class="section-label">Economy (Total)</div>
     <div class="stats-row-4">
       <div class="stat"><div class="v accent">${fmt(totals.totalCredits)}</div><div class="l">Total Credits</div></div>
       <div class="stat"><div class="v accent">${fmt(totals.avgRate)}</div><div class="l">Avg Credits / Min</div></div>
@@ -258,6 +262,12 @@ function renderStats() {
     </div>
     <div class="stats-row" style="margin-top:12px;">
       <div class="stat" style="grid-column: span 3;"><div class="v">${escapeHtml(totals.topDroidType)}</div><div class="l">Most-Crafted Type (${fmt(totals.topDroidCount)})</div></div>
+    </div>
+
+    <div class="section-label">Rebirths (Total)</div>
+    <div class="stats-row">
+      <div class="stat"><div class="v">${fmt(totals.totalRebirths)}</div><div class="l">Total Rebirths</div></div>
+      <div class="stat"><div class="v">${fmt(totals.totalSuperRebirths)}</div><div class="l">Total Super Rebirths</div></div>
     </div>
 
     <div class="section-label">Activity</div>
@@ -277,7 +287,7 @@ function renderStats() {
 }
 
 function wireManualTotalsInputs() {
-  ['credits', 'chips', 'crystals'].forEach(key => {
+  ['credits', 'chips', 'crystals', 'rebirths', 'superRebirths'].forEach(key => {
     const input = document.getElementById(`manual-${key}`);
     const preview = document.getElementById(`manual-${key}-fmt`);
     input.addEventListener('input', () => {
@@ -285,6 +295,7 @@ function wireManualTotalsInputs() {
       manualTotals[key] = val;
       saveManualTotals(manualTotals);
       preview.textContent = fmt(val);
+      drawCard();
     });
   });
 }
@@ -349,9 +360,16 @@ function drawCard() {
   const netDroids = totals.totalCrafted - totals.totalSold;
   const cards = [
     ['TOTAL CREDITS', fmt(totals.totalCredits), '#5ec2ff'],
+    ['CURRENT CREDITS', fmt(manualTotals.credits), '#5ec2ff'],
     ['AVG CREDITS/MIN', fmt(totals.avgRate), '#5ec2ff'],
-    ['NOVA CRYSTALS', fmt(totals.totalCrystals), '#ffb454'],
-    ['CHIPS', fmt(totals.totalChips), '#ffb454'],
+    ['TOTAL NOVA CRYSTALS', fmt(totals.totalCrystals), '#ffb454'],
+    ['CURRENT NOVA CRYSTALS', fmt(manualTotals.crystals), '#ffb454'],
+    ['TOTAL CHIPS', fmt(totals.totalChips), '#ffb454'],
+    ['CURRENT CHIPS', fmt(manualTotals.chips), '#ffb454'],
+    ['TOTAL REBIRTHS', fmt(totals.totalRebirths), '#c792ff'],
+    ['CURRENT REBIRTHS', fmt(manualTotals.rebirths), '#c792ff'],
+    ['TOTAL SUPER REBIRTHS', fmt(totals.totalSuperRebirths), '#c792ff'],
+    ['CURRENT SUPER REBIRTHS', fmt(manualTotals.superRebirths), '#c792ff'],
     ['SESSIONS LOGGED', String(totals.sessions), '#e8ecf5'],
     ['TOTAL PLAYTIME', formatDuration(totals.totalPlaytime), '#e8ecf5'],
     ['DROIDS CRAFTED', fmt(totals.totalCrafted), '#6ee7a0'],

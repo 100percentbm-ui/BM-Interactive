@@ -20,7 +20,13 @@ function saveUsername(name) {
 
 function loadManualTotals() {
   const raw = JSON.parse(localStorage.getItem(MANUAL_TOTALS_KEY) || '{}');
-  return { credits: raw.credits || 0, chips: raw.chips || 0, crystals: raw.crystals || 0 };
+  return {
+    credits: raw.credits || 0,
+    chips: raw.chips || 0,
+    crystals: raw.crystals || 0,
+    rebirths: raw.rebirths || 0,
+    superRebirths: raw.superRebirths || 0,
+  };
 }
 
 function saveManualTotals(totals) {
@@ -111,6 +117,8 @@ function computeTotals(entries) {
   const totalChips = entries.reduce((s, e) => s + (e.chips || 0), 0);
   const totalCrafted = entries.reduce((s, e) => s + (e.crafted || 0), 0);
   const totalSold = entries.reduce((s, e) => s + (e.sold || 0), 0);
+  const totalRebirths = entries.reduce((s, e) => s + (e.rebirths || 0), 0);
+  const totalSuperRebirths = entries.reduce((s, e) => s + (e.superRebirths || 0), 0);
   const avgRate = totalPlaytime > 0 ? totalCredits / totalPlaytime : 0;
 
   const best = entries.reduce((b, e) => computeRate(e) > (b ? computeRate(b) : -1) ? e : b, null);
@@ -136,6 +144,7 @@ function computeTotals(entries) {
 
   return {
     sessions, totalPlaytime, totalCredits, totalCrystals, totalChips, totalCrafted, totalSold,
+    totalRebirths, totalSuperRebirths,
     avgRate, best, topDroidType, topDroidCount, firstDate, lastDate,
   };
 }
