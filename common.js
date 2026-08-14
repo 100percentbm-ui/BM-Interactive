@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'droidTycoonSessionLog';
 const USERNAME_KEY = 'droidTycoonUsername';
+const MANUAL_TOTALS_KEY = 'droidTycoonManualTotals';
 
 function loadEntries() {
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -15,6 +16,15 @@ function loadUsername() {
 
 function saveUsername(name) {
   localStorage.setItem(USERNAME_KEY, name);
+}
+
+function loadManualTotals() {
+  const raw = JSON.parse(localStorage.getItem(MANUAL_TOTALS_KEY) || '{}');
+  return { credits: raw.credits || 0, chips: raw.chips || 0, crystals: raw.crystals || 0 };
+}
+
+function saveManualTotals(totals) {
+  localStorage.setItem(MANUAL_TOTALS_KEY, JSON.stringify(totals));
 }
 
 function computeRate(e) {
@@ -98,6 +108,7 @@ function computeTotals(entries) {
   const totalPlaytime = entries.reduce((s, e) => s + (e.playtime || 0), 0);
   const totalCredits = entries.reduce((s, e) => s + (e.credits || 0), 0);
   const totalCrystals = entries.reduce((s, e) => s + (e.crystals || 0), 0);
+  const totalChips = entries.reduce((s, e) => s + (e.chips || 0), 0);
   const totalCrafted = entries.reduce((s, e) => s + (e.crafted || 0), 0);
   const totalSold = entries.reduce((s, e) => s + (e.sold || 0), 0);
   const avgRate = totalPlaytime > 0 ? totalCredits / totalPlaytime : 0;
@@ -124,7 +135,7 @@ function computeTotals(entries) {
   const lastDate = timestamps.length ? timestamps[timestamps.length - 1] : null;
 
   return {
-    sessions, totalPlaytime, totalCredits, totalCrystals, totalCrafted, totalSold,
+    sessions, totalPlaytime, totalCredits, totalCrystals, totalChips, totalCrafted, totalSold,
     avgRate, best, topDroidType, topDroidCount, firstDate, lastDate,
   };
 }

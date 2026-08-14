@@ -94,6 +94,8 @@
 
   .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   @media (max-width: 620px) { .stats-row { grid-template-columns: 1fr 1fr; } }
+  .stats-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 680px) { .stats-row-4 { grid-template-columns: 1fr 1fr; } }
   .stat {
     background: var(--panel2);
     border: 1px solid var(--border);
@@ -104,6 +106,20 @@
   .stat .v.accent { color: var(--accent); }
   .stat .v.gold { color: var(--accent2); }
   .stat .l { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .stat-editable { border-color: rgba(94,194,255,0.3); }
+  .stat-value-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .stat-value-input:focus { outline: none; }
+  .stat-value-input::placeholder { color: var(--muted); font-weight: 400; }
+  .stat .l .fmt-preview { color: var(--accent); }
 
   .empty-note { color: var(--muted); font-size: 13px; padding: 10px 0; }
 
@@ -113,7 +129,7 @@
 
   /* share card */
   label { display: block; font-size: 12px; color: var(--muted); margin: 4px 0 6px; }
-  input[type="text"] {
+  input[type="text"], input[type="number"] {
     width: 100%;
     background: var(--panel2);
     border: 1px solid var(--border);
@@ -123,7 +139,7 @@
     font-size: 13px;
     font-family: inherit;
   }
-  input[type="text"]:focus { outline: 1px solid var(--accent); }
+  input[type="text"]:focus, input[type="number"]:focus { outline: 1px solid var(--accent); }
   button {
     cursor: pointer;
     border-radius: 8px;
@@ -190,11 +206,33 @@
 <script>
 let entries = loadEntries();
 let totals = computeTotals(entries);
+let manualTotals = loadManualTotals();
+
+function manualStatField(key, label) {
+  const val = manualTotals[key];
+  return `
+    <div class="stat stat-editable">
+      <input type="number" step="any" class="stat-value-input" id="manual-${key}" placeholder="0" value="${val || ''}">
+      <div class="l">${label} &middot; <span class="fmt-preview" id="manual-${key}-fmt">${fmt(val)}</span></div>
+    </div>
+  `;
+}
 
 function renderStats() {
   const container = document.getElementById('stats-container');
+
+  const manualHtml = `
+    <div class="section-label">Manual Totals <span style="color:var(--muted); text-transform:none; letter-spacing:0;">(your own numbers, not calculated from the log)</span></div>
+    <div class="stats-row">
+      ${manualStatField('credits', 'Total Credits')}
+      ${manualStatField('chips', 'Total Chips')}
+      ${manualStatField('crystals', 'Total Nova Crystals')}
+    </div>
+  `;
+
   if (entries.length === 0) {
-    container.innerHTML = '<div class="empty-note">No sessions logged yet. Add entries on the Session Log page to see your dashboard fill in.</div>';
+    container.innerHTML = manualHtml + '<div class="empty-note">No sessions logged yet. Add entries on the Session Log page to see the rest of your dashboard fill in.</div>';
+    wireManualTotalsInputs();
     return;
   }
 
@@ -203,12 +241,13 @@ function renderStats() {
     ? totals.firstDate
     : `${totals.firstDate} → ${totals.lastDate}`;
 
-  container.innerHTML = `
+  container.innerHTML = manualHtml + `
     <div class="section-label">Economy</div>
-    <div class="stats-row">
+    <div class="stats-row-4">
       <div class="stat"><div class="v accent">${fmt(totals.totalCredits)}</div><div class="l">Total Credits</div></div>
       <div class="stat"><div class="v accent">${fmt(totals.avgRate)}</div><div class="l">Avg Credits / Min</div></div>
       <div class="stat"><div class="v gold">${fmt(totals.totalCrystals)}</div><div class="l">Nova Crystals</div></div>
+      <div class="stat"><div class="v gold">${fmt(totals.totalChips)}</div><div class="l">Chips</div></div>
     </div>
 
     <div class="section-label">Droids</div>
@@ -234,6 +273,20 @@ function renderStats() {
       </div>
     </div>
   `;
+  wireManualTotalsInputs();
+}
+
+function wireManualTotalsInputs() {
+  ['credits', 'chips', 'crystals'].forEach(key => {
+    const input = document.getElementById(`manual-${key}`);
+    const preview = document.getElementById(`manual-${key}-fmt`);
+    input.addEventListener('input', () => {
+      const val = parseFloat(input.value) || 0;
+      manualTotals[key] = val;
+      saveManualTotals(manualTotals);
+      preview.textContent = fmt(val);
+    });
+  });
 }
 
 function renderChart() {
@@ -291,9 +344,32 @@ function roundRect(ctx, x, y, w, h, r) {
 
 function drawCard() {
   const canvas = document.getElementById('card-canvas');
+  const username = document.getElementById('username-input').value.trim() || 'Commander';
+
+  const netDroids = totals.totalCrafted - totals.totalSold;
+  const cards = [
+    ['TOTAL CREDITS', fmt(totals.totalCredits), '#5ec2ff'],
+    ['AVG CREDITS/MIN', fmt(totals.avgRate), '#5ec2ff'],
+    ['NOVA CRYSTALS', fmt(totals.totalCrystals), '#ffb454'],
+    ['CHIPS', fmt(totals.totalChips), '#ffb454'],
+    ['SESSIONS LOGGED', String(totals.sessions), '#e8ecf5'],
+    ['TOTAL PLAYTIME', formatDuration(totals.totalPlaytime), '#e8ecf5'],
+    ['DROIDS CRAFTED', fmt(totals.totalCrafted), '#6ee7a0'],
+    ['DROIDS SOLD', fmt(totals.totalSold), '#6ee7a0'],
+    ['NET DROIDS HELD', fmt(netDroids), '#6ee7a0'],
+  ];
+
+  const cols = 4;
+  const marginX = 48;
+  const gap = 16;
+  const cardW = (canvas.width - marginX * 2 - gap * (cols - 1)) / cols;
+  const cardH = 130;
+  const startY = 190;
+  const rows = Math.ceil(cards.length / cols);
+  canvas.height = startY + rows * cardH + (rows - 1) * gap + 60;
+
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  const username = document.getElementById('username-input').value.trim() || 'Commander';
 
   ctx.clearRect(0, 0, W, H);
 
@@ -324,25 +400,6 @@ function drawCard() {
   ctx.fillStyle = '#93a0bd';
   ctx.font = '400 13px Segoe UI, Arial, sans-serif';
   ctx.fillText('Generated ' + dateStr, 48, 155);
-
-  const netDroids = totals.totalCrafted - totals.totalSold;
-  const cards = [
-    ['TOTAL CREDITS', fmt(totals.totalCredits), '#5ec2ff'],
-    ['AVG CREDITS/MIN', fmt(totals.avgRate), '#5ec2ff'],
-    ['NOVA CRYSTALS', fmt(totals.totalCrystals), '#ffb454'],
-    ['SESSIONS LOGGED', String(totals.sessions), '#e8ecf5'],
-    ['TOTAL PLAYTIME', formatDuration(totals.totalPlaytime), '#e8ecf5'],
-    ['DROIDS CRAFTED', fmt(totals.totalCrafted), '#6ee7a0'],
-    ['DROIDS SOLD', fmt(totals.totalSold), '#6ee7a0'],
-    ['NET DROIDS HELD', fmt(netDroids), '#6ee7a0'],
-  ];
-
-  const cols = 4;
-  const marginX = 48;
-  const gap = 16;
-  const cardW = (W - marginX * 2 - gap * (cols - 1)) / cols;
-  const cardH = 130;
-  const startY = 190;
 
   cards.forEach((c, i) => {
     const col = i % cols;

@@ -171,7 +171,7 @@
 </nav>
 
 <h1>Droid Tycoon Session Log <span class="tag">local &middot; saved in this browser</span></h1>
-<div class="sub">Log a run, track credits/min, nova crystals, and droid crafting &amp; sales over time.</div>
+<div class="sub">Log a run, track credits/min, nova crystals, chips, and droid crafting &amp; sales over time.</div>
 
 <div class="layout">
   <div class="panel">
@@ -206,11 +206,14 @@
           <input type="number" id="f-crystals" min="0" step="1" placeholder="0">
         </div>
         <div>
-          <label>Droid Type</label>
-          <input type="text" id="f-droidtype" list="droid-types" placeholder="e.g. Astromech">
-          <datalist id="droid-types"></datalist>
+          <label>Chips Earned</label>
+          <input type="number" id="f-chips" min="0" step="1" placeholder="0">
         </div>
       </div>
+
+      <label>Droid Type</label>
+      <input type="text" id="f-droidtype" list="droid-types" placeholder="e.g. Astromech">
+      <datalist id="droid-types"></datalist>
 
       <div class="row2">
         <div>
@@ -264,7 +267,7 @@
           <tbody id="table-body"></tbody>
         </table>
       </div>
-      <div class="hint">Click Date, Time, or Notes cells to edit an entry directly.</div>
+      <div class="hint">Click Date, Time, Playtime, Milestone, or Notes cells to edit an entry directly.</div>
     </div>
   </div>
 </div>
@@ -278,16 +281,18 @@ let sortDir = -1;
 const columns = [
   { key: 'date', label: 'Date', editable: true },
   { key: 'time', label: 'Time', editable: true },
-  { key: 'playtime', label: 'Playtime' },
+  { key: 'playtime', label: 'Playtime', editable: true },
   { key: 'credits', label: 'Credits' },
   { key: 'rate', label: 'Cr/Min' },
   { key: 'crystals', label: 'Nova' },
+  { key: 'chips', label: 'Chips' },
   { key: 'droidType', label: 'Droid' },
   { key: 'crafted', label: 'Crafted' },
   { key: 'sold', label: 'Sold' },
   { key: 'milestone', label: 'Milestone', editable: true },
   { key: 'notes', label: 'Notes', editable: true },
 ];
+const colMap = Object.fromEntries(columns.map(c => [c.key, c]));
 
 function updateDroidTypeOptions() {
   const types = [...new Set(entries.map(e => e.droidType).filter(Boolean))].sort();
@@ -309,6 +314,7 @@ function renderStats() {
     ['Total Credits', fmt(t.totalCredits)],
     ['Avg Credits/Min', fmt(t.avgRate)],
     ['Nova Crystals', fmt(t.totalCrystals)],
+    ['Chips', fmt(t.totalChips)],
     ['Droids Crafted', fmt(t.totalCrafted)],
     ['Droids Sold', fmt(t.totalSold)],
     ['Best Rate', t.best ? fmt(computeRate(t.best)) + ' cr/min (' + t.best.date + ')' : '-'],
@@ -373,23 +379,25 @@ function renderTable() {
     const cell = (col) => {
       const val = e[col.key];
       if (col.editable) {
-        return `<td class="editable" data-id="${e.id}" data-key="${col.key}">${escapeHtml(val) || '-'}</td>`;
+        const display = col.key === 'playtime' ? formatDuration(val) : (escapeHtml(val) || '-');
+        return `<td class="editable" data-id="${e.id}" data-key="${col.key}">${display}</td>`;
       }
       return null;
     };
     return `
       <tr>
-        ${cell(columns[0])}
-        ${cell(columns[1])}
-        <td>${formatDuration(e.playtime)}</td>
+        ${cell(colMap.date)}
+        ${cell(colMap.time)}
+        ${cell(colMap.playtime)}
         <td>${fmt(e.credits)}</td>
         <td class="${rateClass}">${fmt(rate)}</td>
         <td>${fmt(e.crystals)}</td>
+        <td>${fmt(e.chips)}</td>
         <td>${escapeHtml(e.droidType) || '-'}</td>
         <td>${fmt(e.crafted)}</td>
         <td>${fmt(e.sold)}</td>
-        ${cell(columns[9])}
-        ${cell(columns[10])}
+        ${cell(colMap.milestone)}
+        ${cell(colMap.notes)}
         <td><button class="del-btn" data-id="${e.id}" title="Delete">&#10005;</button></td>
       </tr>
     `;
@@ -414,7 +422,7 @@ function startEdit(td) {
   const key = td.dataset.key;
   const entry = entries.find(e => e.id === id);
   if (!entry) return;
-  const currentVal = entry[key] || '';
+  const currentVal = key === 'playtime' ? formatDuration(entry.playtime) : (entry[key] || '');
   const inputType = key === 'date' ? 'date' : key === 'time' ? 'time' : 'text';
   td.innerHTML = `<input type="${inputType}" value="${escapeHtml(currentVal)}">`;
   const input = td.querySelector('input');
@@ -422,7 +430,17 @@ function startEdit(td) {
   if (input.select) input.select();
 
   const commit = () => {
-    entry[key] = input.value;
+    if (key === 'playtime') {
+      const parsed = parseDuration(input.value);
+      if (isNaN(parsed)) {
+        alert('Could not read that playtime. Use a combo of d/h/m/s, e.g. "1h 30m" or "45m".');
+        renderTable();
+        return;
+      }
+      entry.playtime = parsed;
+    } else {
+      entry[key] = input.value;
+    }
     saveEntries(entries);
     renderAll();
   };
@@ -441,13 +459,19 @@ function renderAll() {
 
 document.getElementById('entry-form').addEventListener('submit', (ev) => {
   ev.preventDefault();
+  const playtime = parseDuration(document.getElementById('f-playtime').value);
+  if (isNaN(playtime)) {
+    alert('Could not read that playtime. Use a combo of d/h/m/s, e.g. "1h 30m" or "45m".');
+    return;
+  }
   const entry = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
     date: document.getElementById('f-date').value,
     time: document.getElementById('f-time').value,
-    playtime: parseFloat(document.getElementById('f-playtime').value) || 0,
+    playtime,
     credits: parseFloat(document.getElementById('f-credits').value) || 0,
     crystals: parseFloat(document.getElementById('f-crystals').value) || 0,
+    chips: parseFloat(document.getElementById('f-chips').value) || 0,
     droidType: document.getElementById('f-droidtype').value.trim(),
     crafted: parseFloat(document.getElementById('f-crafted').value) || 0,
     sold: parseFloat(document.getElementById('f-sold').value) || 0,
@@ -470,10 +494,10 @@ document.getElementById('export-json').addEventListener('click', () => {
 });
 
 document.getElementById('export-csv').addEventListener('click', () => {
-  const headers = ['date','time','playtime','credits','rate','crystals','droidType','crafted','sold','milestone','notes'];
+  const headers = ['date','time','playtime','credits','rate','crystals','chips','droidType','crafted','sold','milestone','notes'];
   const lines = [headers.join(',')];
   entries.forEach(e => {
-    const row = [e.date, e.time, e.playtime, e.credits, computeRate(e).toFixed(2), e.crystals, e.droidType, e.crafted, e.sold, e.milestone, e.notes]
+    const row = [e.date, e.time, e.playtime, e.credits, computeRate(e).toFixed(2), e.crystals, e.chips, e.droidType, e.crafted, e.sold, e.milestone, e.notes]
       .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`);
     lines.push(row.join(','));
   });
