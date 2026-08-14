@@ -106,8 +106,15 @@
   .stat .v.accent { color: var(--accent); }
   .stat .v.gold { color: var(--accent2); }
   .stat .l { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
-  .stat-editable { border-color: rgba(94,194,255,0.3); }
+  .stat-editable { border-color: rgba(94,194,255,0.3); cursor: pointer; }
+  .stat-editable:hover { border-color: var(--accent); background: rgba(94,194,255,0.06); }
+  .stat-editable.stat-editing { cursor: default; }
+  .stat-editable.stat-editing:hover { background: var(--panel2); border-color: rgba(94,194,255,0.3); }
+  .stat-value-display { font-size: 21px; font-weight: 700; }
+  .stat-edit-row { display: flex; align-items: center; gap: 6px; }
   .stat-value-input {
+    flex: 1;
+    min-width: 0;
     width: 100%;
     background: transparent;
     border: none;
@@ -119,7 +126,26 @@
   }
   .stat-value-input:focus { outline: none; }
   .stat-value-input::placeholder { color: var(--muted); font-weight: 400; }
-  .stat .l .fmt-preview { color: var(--accent); }
+  .icon-btn {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+  }
+  .icon-btn.confirm { color: var(--good); border-color: rgba(110,231,160,0.4); }
+  .icon-btn.confirm:hover { background: rgba(110,231,160,0.12); border-color: var(--good); }
+  .icon-btn.cancel { color: var(--bad); border-color: rgba(255,107,107,0.4); }
+  .icon-btn.cancel:hover { background: rgba(255,107,107,0.12); border-color: var(--bad); }
 
   .empty-note { color: var(--muted); font-size: 13px; padding: 10px 0; }
 
@@ -208,29 +234,32 @@ let entries = loadEntries();
 let totals = computeTotals(entries);
 let manualTotals = loadManualTotals();
 
-function manualStatField(key, label) {
-  const val = manualTotals[key];
-  return `
-    <div class="stat stat-editable">
-      <input type="number" step="any" class="stat-value-input" id="manual-${key}" placeholder="0" value="${val || ''}">
-      <div class="l">${label} &middot; <span class="fmt-preview" id="manual-${key}-fmt">${fmt(val)}</span></div>
-    </div>
-  `;
+const MANUAL_FIELDS = [
+  { key: 'credits', label: 'Current Credits' },
+  { key: 'chips', label: 'Current Chips' },
+  { key: 'crystals', label: 'Current Nova Crystals' },
+  { key: 'rebirths', label: 'Current Rebirths' },
+  { key: 'superRebirths', label: 'Current Super Rebirths' },
+];
+const MANUAL_FIELD_LABELS = Object.fromEntries(MANUAL_FIELDS.map(f => [f.key, f.label]));
+
+function manualStatField(key) {
+  return `<div class="stat stat-editable" id="manual-${key}-wrap"></div>`;
 }
 
 function renderStats() {
   const container = document.getElementById('stats-container');
 
   const manualHtml = `
-    <div class="section-label">Current Totals <span style="color:var(--muted); text-transform:none; letter-spacing:0;">(your own numbers, not calculated from the log)</span></div>
+    <div class="section-label">Current Totals <span style="color:var(--muted); text-transform:none; letter-spacing:0;">(your own numbers, not calculated from the log — click a value to edit)</span></div>
     <div class="stats-row">
-      ${manualStatField('credits', 'Current Credits')}
-      ${manualStatField('chips', 'Current Chips')}
-      ${manualStatField('crystals', 'Current Nova Crystals')}
+      ${manualStatField('credits')}
+      ${manualStatField('chips')}
+      ${manualStatField('crystals')}
     </div>
     <div class="stats-row" style="margin-top:12px;">
-      ${manualStatField('rebirths', 'Current Rebirths')}
-      ${manualStatField('superRebirths', 'Current Super Rebirths')}
+      ${manualStatField('rebirths')}
+      ${manualStatField('superRebirths')}
     </div>
   `;
 
@@ -287,16 +316,57 @@ function renderStats() {
 }
 
 function wireManualTotalsInputs() {
-  ['credits', 'chips', 'crystals', 'rebirths', 'superRebirths'].forEach(key => {
-    const input = document.getElementById(`manual-${key}`);
-    const preview = document.getElementById(`manual-${key}-fmt`);
-    input.addEventListener('input', () => {
-      const val = parseFloat(input.value) || 0;
-      manualTotals[key] = val;
-      saveManualTotals(manualTotals);
-      preview.textContent = fmt(val);
-      drawCard();
-    });
+  MANUAL_FIELDS.forEach(f => renderManualDisplay(f.key));
+}
+
+function renderManualDisplay(key) {
+  const wrap = document.getElementById(`manual-${key}-wrap`);
+  if (!wrap) return;
+  const label = MANUAL_FIELD_LABELS[key];
+  wrap.classList.remove('stat-editing');
+  wrap.innerHTML = `
+    <div class="v stat-value-display">${fmt(manualTotals[key])}</div>
+    <div class="l">${label}</div>
+  `;
+  wrap.onclick = () => renderManualEdit(key);
+}
+
+function renderManualEdit(key) {
+  const wrap = document.getElementById(`manual-${key}-wrap`);
+  if (!wrap) return;
+  const label = MANUAL_FIELD_LABELS[key];
+  wrap.onclick = null;
+  wrap.classList.add('stat-editing');
+  const val = manualTotals[key];
+  wrap.innerHTML = `
+    <div class="stat-edit-row">
+      <input type="number" step="any" class="stat-value-input" id="manual-${key}-input" placeholder="0" value="${val || ''}">
+      <button type="button" class="icon-btn confirm" title="Save">&#10003;</button>
+      <button type="button" class="icon-btn cancel" title="Cancel">&#10005;</button>
+    </div>
+    <div class="l">${label}</div>
+  `;
+
+  const input = wrap.querySelector('.stat-value-input');
+  const confirmBtn = wrap.querySelector('.confirm');
+  const cancelBtn = wrap.querySelector('.cancel');
+  input.focus();
+  input.select();
+
+  const commit = () => {
+    manualTotals[key] = parseFloat(input.value) || 0;
+    saveManualTotals(manualTotals);
+    renderManualDisplay(key);
+    drawCard();
+  };
+  const cancel = () => renderManualDisplay(key);
+
+  input.addEventListener('click', (ev) => ev.stopPropagation());
+  confirmBtn.addEventListener('click', (ev) => { ev.stopPropagation(); commit(); });
+  cancelBtn.addEventListener('click', (ev) => { ev.stopPropagation(); cancel(); });
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+    if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
   });
 }
 
