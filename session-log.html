@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Droid Tycoon Session Log</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel2: #1e263a;
+    --border: #2a3450;
+    --text: #e8ecf5;
+    --muted: #93a0bd;
+    --accent: #5ec2ff;
+    --accent2: #ffb454;
+    --good: #6ee7a0;
+    --bad: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    padding: 24px;
+  }
+  nav {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  nav a.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(94, 194, 255, 0.08);
+  }
+  nav a:hover { color: var(--text); }
+
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 .tag {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: normal;
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .sub { color: var(--muted); margin-bottom: 20px; font-size: 13px; }
+
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .panel h2 {
+    font-size: 14px;
+    margin: 0 0 14px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 10px 0 4px;
+  }
+  input, select, textarea {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: 1px solid var(--accent); }
+  textarea { resize: vertical; min-height: 44px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  button {
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+  button:hover { border-color: var(--accent); }
+  .btn-primary {
+    background: var(--accent);
+    color: #08131f;
+    border-color: var(--accent);
+    font-weight: 600;
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  .btn-row button { flex: 1; }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .stat {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .stat .v { font-size: 18px; font-weight: 700; }
+  .stat .l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+  .toolbar select, .toolbar input { width: auto; min-width: 140px; }
+  .toolbar .spacer { flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--panel); }
+  th:hover { color: var(--accent); }
+  th .arrow { opacity: 0.5; margin-left: 3px; }
+  tbody tr:hover { background: var(--panel2); }
+  td.editable { cursor: text; }
+  td.editable:hover { outline: 1px dashed var(--border); outline-offset: -2px; }
+  td.editable input {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 3px 5px;
+    font-size: 12.5px;
+    font-family: inherit;
+  }
+  .rate-good { color: var(--good); }
+  .rate-bad { color: var(--bad); }
+  .del-btn { background: transparent; border: none; color: var(--muted); font-size: 14px; padding: 2px 6px; }
+  .del-btn:hover { color: var(--bad); border: none; }
+  .empty { text-align: center; color: var(--muted); padding: 30px; }
+  .table-wrap { overflow-x: auto; max-height: 60vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--border); font-size: 11px; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="session-log.html" class="active">Session Log</a>
+</nav>
+
+<h1>Droid Tycoon Session Log <span class="tag">local &middot; saved in this browser</span></h1>
+<div class="sub">Log a run, track credits/min, nova crystals, and droid crafting &amp; sales over time.</div>
+
+<div class="layout">
+  <div class="panel">
+    <h2>New Entry</h2>
+    <form id="entry-form">
+      <div class="row2">
+        <div>
+          <label>Date</label>
+          <input type="date" id="f-date" required>
+        </div>
+        <div>
+          <label>Time</label>
+          <input type="time" id="f-time" required>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label>Playtime</label>
+          <input type="text" id="f-playtime" required placeholder="e.g. 1h 30m">
+          <div class="hint" style="margin-top:4px;">d h m s, any combo — e.g. "1m", "2h 4m", "1d 3h 20m 5s"</div>
+        </div>
+        <div>
+          <label>Credits Earned</label>
+          <input type="number" id="f-credits" min="0" step="1" placeholder="12000">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label>Nova Crystals Earned</label>
+          <input type="number" id="f-crystals" min="0" step="1" placeholder="0">
+        </div>
+        <div>
+          <label>Droid Type</label>
+          <input type="text" id="f-droidtype" list="droid-types" placeholder="e.g. Astromech">
+          <datalist id="droid-types"></datalist>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div>
+          <label>Droids Crafted</label>
+          <input type="number" id="f-crafted" min="0" step="1" placeholder="0">
+        </div>
+        <div>
+          <label>Droids Sold</label>
+          <input type="number" id="f-sold" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+
+      <label>Milestone / Unlock</label>
+      <input type="text" id="f-milestone" placeholder="e.g. Unlocked Tier 3 factory">
+
+      <label>Notes</label>
+      <textarea id="f-notes" placeholder="Anything else worth remembering..."></textarea>
+
+      <button type="submit" class="btn-primary">Add Entry</button>
+    </form>
+    <div class="btn-row">
+      <button type="button" id="export-json">Export JSON</button>
+      <button type="button" id="export-csv">Export CSV</button>
+    </div>
+    <div class="btn-row">
+      <button type="button" id="import-btn">Import JSON</button>
+      <button type="button" id="clear-btn">Clear All</button>
+    </div>
+    <input type="file" id="import-file" accept="application/json" style="display:none">
+  </div>
+
+  <div>
+    <div class="panel" style="margin-bottom:20px;">
+      <h2>Summary</h2>
+      <div class="stats-grid" id="stats-grid"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Session Log</h2>
+      <div class="toolbar">
+        <select id="filter-type"><option value="">All droid types</option></select>
+        <input type="text" id="search-box" placeholder="Search notes / milestones...">
+        <div class="spacer"></div>
+        <span class="pill" id="row-count">0 entries</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr id="table-head"></tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div class="hint">Click Date, Time, or Notes cells to edit an entry directly.</div>
+    </div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+let entries = loadEntries();
+let sortKey = 'date';
+let sortDir = -1;
+
+const columns = [
+  { key: 'date', label: 'Date', editable: true },
+  { key: 'time', label: 'Time', editable: true },
+  { key: 'playtime', label: 'Playtime' },
+  { key: 'credits', label: 'Credits' },
+  { key: 'rate', label: 'Cr/Min' },
+  { key: 'crystals', label: 'Nova' },
+  { key: 'droidType', label: 'Droid' },
+  { key: 'crafted', label: 'Crafted' },
+  { key: 'sold', label: 'Sold' },
+  { key: 'milestone', label: 'Milestone', editable: true },
+  { key: 'notes', label: 'Notes', editable: true },
+];
+
+function updateDroidTypeOptions() {
+  const types = [...new Set(entries.map(e => e.droidType).filter(Boolean))].sort();
+  const datalist = document.getElementById('droid-types');
+  datalist.innerHTML = types.map(t => `<option value="${escapeHtml(t)}">`).join('');
+  const filterSel = document.getElementById('filter-type');
+  const current = filterSel.value;
+  filterSel.innerHTML = '<option value="">All droid types</option>' +
+    types.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  filterSel.value = types.includes(current) ? current : '';
+}
+
+function renderStats() {
+  const grid = document.getElementById('stats-grid');
+  const t = computeTotals(entries);
+  const stats = [
+    ['Sessions', t.sessions],
+    ['Total Playtime', formatDuration(t.totalPlaytime)],
+    ['Total Credits', fmt(t.totalCredits)],
+    ['Avg Credits/Min', fmt(t.avgRate)],
+    ['Nova Crystals', fmt(t.totalCrystals)],
+    ['Droids Crafted', fmt(t.totalCrafted)],
+    ['Droids Sold', fmt(t.totalSold)],
+    ['Best Rate', t.best ? fmt(computeRate(t.best)) + ' cr/min (' + t.best.date + ')' : '-'],
+  ];
+
+  grid.innerHTML = stats.map(([l, v]) => `
+    <div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>
+  `).join('');
+}
+
+function renderTable() {
+  const head = document.getElementById('table-head');
+  head.innerHTML = columns.map(c => `
+    <th data-key="${c.key}">${c.label}${sortKey === c.key ? `<span class="arrow">${sortDir === 1 ? '▲' : '▼'}</span>` : ''}</th>
+  `).join('') + '<th></th>';
+
+  head.querySelectorAll('th[data-key]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
+      renderTable();
+    });
+  });
+
+  const filterType = document.getElementById('filter-type').value;
+  const search = document.getElementById('search-box').value.toLowerCase();
+
+  let rows = entries.filter(e => {
+    if (filterType && e.droidType !== filterType) return false;
+    if (search) {
+      const hay = `${e.notes || ''} ${e.milestone || ''} ${e.droidType || ''}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    let av, bv;
+    if (sortKey === 'rate') { av = computeRate(a); bv = computeRate(b); }
+    else { av = a[sortKey]; bv = b[sortKey]; }
+    if (typeof av === 'string' || typeof bv === 'string') {
+      av = (av || '').toString(); bv = (bv || '').toString();
+      return av.localeCompare(bv) * sortDir;
+    }
+    return ((av || 0) - (bv || 0)) * sortDir;
+  });
+
+  const body = document.getElementById('table-body');
+  document.getElementById('row-count').textContent = `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}`;
+
+  if (rows.length === 0) {
+    body.innerHTML = `<tr><td colspan="${columns.length + 1}" class="empty">No entries yet. Log your first session on the left.</td></tr>`;
+    return;
+  }
+
+  const rates = rows.map(computeRate);
+  const avgRate = rates.reduce((a, b) => a + b, 0) / (rates.length || 1);
+
+  body.innerHTML = rows.map(e => {
+    const rate = computeRate(e);
+    const rateClass = rate >= avgRate ? 'rate-good' : 'rate-bad';
+    const cell = (col) => {
+      const val = e[col.key];
+      if (col.editable) {
+        return `<td class="editable" data-id="${e.id}" data-key="${col.key}">${escapeHtml(val) || '-'}</td>`;
+      }
+      return null;
+    };
+    return `
+      <tr>
+        ${cell(columns[0])}
+        ${cell(columns[1])}
+        <td>${formatDuration(e.playtime)}</td>
+        <td>${fmt(e.credits)}</td>
+        <td class="${rateClass}">${fmt(rate)}</td>
+        <td>${fmt(e.crystals)}</td>
+        <td>${escapeHtml(e.droidType) || '-'}</td>
+        <td>${fmt(e.crafted)}</td>
+        <td>${fmt(e.sold)}</td>
+        ${cell(columns[9])}
+        ${cell(columns[10])}
+        <td><button class="del-btn" data-id="${e.id}" title="Delete">&#10005;</button></td>
+      </tr>
+    `;
+  }).join('');
+
+  body.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      entries = entries.filter(e => e.id !== btn.dataset.id);
+      saveEntries(entries);
+      renderAll();
+    });
+  });
+
+  body.querySelectorAll('td.editable').forEach(td => {
+    td.addEventListener('click', () => startEdit(td));
+  });
+}
+
+function startEdit(td) {
+  if (td.querySelector('input')) return;
+  const id = td.dataset.id;
+  const key = td.dataset.key;
+  const entry = entries.find(e => e.id === id);
+  if (!entry) return;
+  const currentVal = entry[key] || '';
+  const inputType = key === 'date' ? 'date' : key === 'time' ? 'time' : 'text';
+  td.innerHTML = `<input type="${inputType}" value="${escapeHtml(currentVal)}">`;
+  const input = td.querySelector('input');
+  input.focus();
+  if (input.select) input.select();
+
+  const commit = () => {
+    entry[key] = input.value;
+    saveEntries(entries);
+    renderAll();
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') input.blur();
+    if (ev.key === 'Escape') { renderTable(); }
+  });
+}
+
+function renderAll() {
+  updateDroidTypeOptions();
+  renderStats();
+  renderTable();
+}
+
+document.getElementById('entry-form').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    date: document.getElementById('f-date').value,
+    time: document.getElementById('f-time').value,
+    playtime: parseFloat(document.getElementById('f-playtime').value) || 0,
+    credits: parseFloat(document.getElementById('f-credits').value) || 0,
+    crystals: parseFloat(document.getElementById('f-crystals').value) || 0,
+    droidType: document.getElementById('f-droidtype').value.trim(),
+    crafted: parseFloat(document.getElementById('f-crafted').value) || 0,
+    sold: parseFloat(document.getElementById('f-sold').value) || 0,
+    milestone: document.getElementById('f-milestone').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+  };
+  entries.push(entry);
+  saveEntries(entries);
+  renderAll();
+  ev.target.reset();
+  document.getElementById('f-date').value = todayStr();
+  document.getElementById('f-time').value = nowTimeStr();
+});
+
+document.getElementById('filter-type').addEventListener('change', renderTable);
+document.getElementById('search-box').addEventListener('input', renderTable);
+
+document.getElementById('export-json').addEventListener('click', () => {
+  downloadFile('droid-tycoon-sessions.json', JSON.stringify(entries, null, 2), 'application/json');
+});
+
+document.getElementById('export-csv').addEventListener('click', () => {
+  const headers = ['date','time','playtime','credits','rate','crystals','droidType','crafted','sold','milestone','notes'];
+  const lines = [headers.join(',')];
+  entries.forEach(e => {
+    const row = [e.date, e.time, e.playtime, e.credits, computeRate(e).toFixed(2), e.crystals, e.droidType, e.crafted, e.sold, e.milestone, e.notes]
+      .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`);
+    lines.push(row.join(','));
+  });
+  downloadFile('droid-tycoon-sessions.csv', lines.join('\n'), 'text/csv');
+});
+
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('import-file').click();
+});
+document.getElementById('import-file').addEventListener('change', (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (Array.isArray(imported)) {
+        const existingIds = new Set(entries.map(e => e.id));
+        imported.forEach(e => {
+          if (!e.id || existingIds.has(e.id)) e.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+          if (!e.time) e.time = '';
+          entries.push(e);
+        });
+        saveEntries(entries);
+        renderAll();
+      }
+    } catch (err) {
+      alert('Could not import file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+});
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (confirm('Delete all logged sessions? This cannot be undone.')) {
+    entries = [];
+    saveEntries(entries);
+    renderAll();
+  }
+});
+
+document.getElementById('f-date').value = todayStr();
+document.getElementById('f-time').value = nowTimeStr();
+renderAll();
+</script>
+
+</body>
+</html>
