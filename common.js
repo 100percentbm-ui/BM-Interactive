@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'droidTycoonSessionLog';
 const USERNAME_KEY = 'droidTycoonUsername';
 const MANUAL_TOTALS_KEY = 'droidTycoonManualTotals';
+const SHARE_TOGGLES_KEY = 'droidTycoonShareToggles';
 
 function loadEntries() {
   return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -31,6 +32,14 @@ function loadManualTotals() {
 
 function saveManualTotals(totals) {
   localStorage.setItem(MANUAL_TOTALS_KEY, JSON.stringify(totals));
+}
+
+function loadShareToggles() {
+  return JSON.parse(localStorage.getItem(SHARE_TOGGLES_KEY) || '{}');
+}
+
+function saveShareToggles(toggles) {
+  localStorage.setItem(SHARE_TOGGLES_KEY, JSON.stringify(toggles));
 }
 
 function computeRate(e) {

@@ -194,6 +194,51 @@
     display: block;
     margin: 12px auto 0;
   }
+
+  .toggles-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 0 6px;
+  }
+  .toggles-actions { display: flex; gap: 6px; }
+  .link-btn {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-size: 11px;
+    padding: 2px 4px;
+    text-decoration: underline;
+  }
+  .link-btn:hover { border: none; color: var(--text); }
+  .toggle-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 10px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: var(--text);
+    padding: 3px 0;
+    cursor: pointer;
+    margin: 0;
+  }
+  .toggle-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent);
+    flex: none;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -223,6 +268,16 @@
     <h2>Share Card</h2>
     <label>Username</label>
     <input type="text" id="username-input" placeholder="Your name or handle">
+
+    <div class="toggles-head">
+      <label style="margin:0;">Stats to include</label>
+      <div class="toggles-actions">
+        <button type="button" class="link-btn" id="toggles-all">All</button>
+        <button type="button" class="link-btn" id="toggles-none">None</button>
+      </div>
+    </div>
+    <div class="toggle-list" id="share-toggles"></div>
+
     <canvas id="card-canvas" width="1000" height="620"></canvas>
     <button class="btn-primary" id="download-card">Download Share Card (PNG)</button>
   </div>
@@ -233,6 +288,60 @@
 let entries = loadEntries();
 let totals = computeTotals(entries);
 let manualTotals = loadManualTotals();
+let shareToggles = loadShareToggles();
+
+const STAT_DEFS = [
+  { id: 'totalCredits', label: 'TOTAL CREDITS', toggleLabel: 'Total Credits', color: '#5ec2ff', get: () => fmt(totals.totalCredits) },
+  { id: 'currentCredits', label: 'CURRENT CREDITS', toggleLabel: 'Current Credits', color: '#5ec2ff', get: () => fmt(manualTotals.credits) },
+  { id: 'avgRate', label: 'AVG CREDITS/MIN', toggleLabel: 'Avg Credits/Min', color: '#5ec2ff', get: () => fmt(totals.avgRate) },
+  { id: 'totalCrystals', label: 'TOTAL NOVA CRYSTALS', toggleLabel: 'Total Nova Crystals', color: '#ffb454', get: () => fmt(totals.totalCrystals) },
+  { id: 'currentCrystals', label: 'CURRENT NOVA CRYSTALS', toggleLabel: 'Current Nova Crystals', color: '#ffb454', get: () => fmt(manualTotals.crystals) },
+  { id: 'totalChips', label: 'TOTAL CHIPS', toggleLabel: 'Total Chips', color: '#ffb454', get: () => fmt(totals.totalChips) },
+  { id: 'currentChips', label: 'CURRENT CHIPS', toggleLabel: 'Current Chips', color: '#ffb454', get: () => fmt(manualTotals.chips) },
+  { id: 'totalRebirths', label: 'TOTAL REBIRTHS', toggleLabel: 'Total Rebirths', color: '#c792ff', get: () => fmt(totals.totalRebirths) },
+  { id: 'currentRebirths', label: 'CURRENT REBIRTHS', toggleLabel: 'Current Rebirths', color: '#c792ff', get: () => fmt(manualTotals.rebirths) },
+  { id: 'totalSuperRebirths', label: 'TOTAL SUPER REBIRTHS', toggleLabel: 'Total Super Rebirths', color: '#c792ff', get: () => fmt(totals.totalSuperRebirths) },
+  { id: 'currentSuperRebirths', label: 'CURRENT SUPER REBIRTHS', toggleLabel: 'Current Super Rebirths', color: '#c792ff', get: () => fmt(manualTotals.superRebirths) },
+  { id: 'sessions', label: 'SESSIONS LOGGED', toggleLabel: 'Sessions Logged', color: '#e8ecf5', get: () => String(totals.sessions) },
+  { id: 'playtime', label: 'TOTAL PLAYTIME', toggleLabel: 'Total Playtime', color: '#e8ecf5', get: () => formatDuration(totals.totalPlaytime) },
+  { id: 'crafted', label: 'DROIDS CRAFTED', toggleLabel: 'Droids Crafted', color: '#6ee7a0', get: () => fmt(totals.totalCrafted) },
+  { id: 'sold', label: 'DROIDS SOLD', toggleLabel: 'Droids Sold', color: '#6ee7a0', get: () => fmt(totals.totalSold) },
+  { id: 'netHeld', label: 'NET DROIDS HELD', toggleLabel: 'Net Droids Held', color: '#6ee7a0', get: () => fmt(totals.totalCrafted - totals.totalSold) },
+];
+
+function isStatEnabled(id) {
+  return shareToggles[id] !== false;
+}
+
+function renderShareToggles() {
+  const container = document.getElementById('share-toggles');
+  container.innerHTML = STAT_DEFS.map(def => `
+    <label class="toggle-item">
+      <input type="checkbox" class="toggle-checkbox" data-id="${def.id}" ${isStatEnabled(def.id) ? 'checked' : ''}>
+      <span>${def.toggleLabel}</span>
+    </label>
+  `).join('');
+  container.querySelectorAll('.toggle-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      shareToggles[cb.dataset.id] = cb.checked;
+      saveShareToggles(shareToggles);
+      drawCard();
+    });
+  });
+}
+
+document.getElementById('toggles-all').addEventListener('click', () => {
+  STAT_DEFS.forEach(def => { shareToggles[def.id] = true; });
+  saveShareToggles(shareToggles);
+  renderShareToggles();
+  drawCard();
+});
+document.getElementById('toggles-none').addEventListener('click', () => {
+  STAT_DEFS.forEach(def => { shareToggles[def.id] = false; });
+  saveShareToggles(shareToggles);
+  renderShareToggles();
+  drawCard();
+});
 
 const MANUAL_FIELDS = [
   { key: 'credits', label: 'Current Credits' },
@@ -427,25 +536,7 @@ function drawCard() {
   const canvas = document.getElementById('card-canvas');
   const username = document.getElementById('username-input').value.trim() || 'Commander';
 
-  const netDroids = totals.totalCrafted - totals.totalSold;
-  const cards = [
-    ['TOTAL CREDITS', fmt(totals.totalCredits), '#5ec2ff'],
-    ['CURRENT CREDITS', fmt(manualTotals.credits), '#5ec2ff'],
-    ['AVG CREDITS/MIN', fmt(totals.avgRate), '#5ec2ff'],
-    ['TOTAL NOVA CRYSTALS', fmt(totals.totalCrystals), '#ffb454'],
-    ['CURRENT NOVA CRYSTALS', fmt(manualTotals.crystals), '#ffb454'],
-    ['TOTAL CHIPS', fmt(totals.totalChips), '#ffb454'],
-    ['CURRENT CHIPS', fmt(manualTotals.chips), '#ffb454'],
-    ['TOTAL REBIRTHS', fmt(totals.totalRebirths), '#c792ff'],
-    ['CURRENT REBIRTHS', fmt(manualTotals.rebirths), '#c792ff'],
-    ['TOTAL SUPER REBIRTHS', fmt(totals.totalSuperRebirths), '#c792ff'],
-    ['CURRENT SUPER REBIRTHS', fmt(manualTotals.superRebirths), '#c792ff'],
-    ['SESSIONS LOGGED', String(totals.sessions), '#e8ecf5'],
-    ['TOTAL PLAYTIME', formatDuration(totals.totalPlaytime), '#e8ecf5'],
-    ['DROIDS CRAFTED', fmt(totals.totalCrafted), '#6ee7a0'],
-    ['DROIDS SOLD', fmt(totals.totalSold), '#6ee7a0'],
-    ['NET DROIDS HELD', fmt(netDroids), '#6ee7a0'],
-  ];
+  const cards = STAT_DEFS.filter(def => isStatEnabled(def.id)).map(def => [def.label, def.get(), def.color]);
 
   const cols = 4;
   const marginX = 48;
@@ -454,7 +545,9 @@ function drawCard() {
   const cardH = 130;
   const startY = 190;
   const rows = Math.ceil(cards.length / cols);
-  canvas.height = startY + rows * cardH + (rows - 1) * gap + 60;
+  canvas.height = cards.length
+    ? startY + rows * cardH + (rows - 1) * gap + 60
+    : startY + 80;
 
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -488,6 +581,12 @@ function drawCard() {
   ctx.fillStyle = '#93a0bd';
   ctx.font = '400 13px Segoe UI, Arial, sans-serif';
   ctx.fillText('Generated ' + dateStr, 48, 155);
+
+  if (cards.length === 0) {
+    ctx.fillStyle = '#5b6684';
+    ctx.font = '400 14px Segoe UI, Arial, sans-serif';
+    ctx.fillText('No stats selected — pick some above to build your card.', 48, startY + 10);
+  }
 
   cards.forEach((c, i) => {
     const col = i % cols;
@@ -558,6 +657,7 @@ document.getElementById('download-card').addEventListener('click', () => {
 
 renderStats();
 renderChart();
+renderShareToggles();
 drawCard();
 </script>
 
