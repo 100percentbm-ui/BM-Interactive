@@ -27,7 +27,7 @@ function loadManualTotals() {
     crystals: raw.crystals || 0,
     rebirths: raw.rebirths || 0,
     superRebirths: raw.superRebirths || 0,
-    craftedForDroids: raw.craftedForDroids || 0,
+    craftedDroids: raw.craftedDroids || 0,
   };
 }
 
