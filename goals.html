@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Droid Tycoon Goals</title>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('droidTycoonTheme') || 'dark');</script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel2: #1e263a;
+    --border: #2a3450;
+    --text: #e8ecf5;
+    --muted: #93a0bd;
+    --accent: #5ec2ff;
+    --accent2: #ffb454;
+    --good: #6ee7a0;
+    --bad: #ff6b6b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --panel2: #eef1f8;
+    --border: #d8deec;
+    --text: #1b2436;
+    --muted: #5b6684;
+    --accent: #2f7fd1;
+    --accent2: #c97a12;
+    --good: #1f9d5c;
+    --bad: #d1453a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    padding: 24px;
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  nav .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  #theme-toggle {
+    margin-left: auto;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #theme-toggle:hover { border-color: var(--accent); }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  nav a.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(94, 194, 255, 0.08);
+  }
+  nav a:hover { color: var(--text); }
+
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 .tag {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: normal;
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .sub { color: var(--muted); margin-bottom: 22px; font-size: 13px; }
+
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .panel h2 {
+    font-size: 14px;
+    margin: 0 0 16px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  label:first-child { margin-top: 0; }
+  input, select {
+    width: 100%;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  input:focus, select:focus { outline: 1px solid var(--accent); }
+
+  button {
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+  button:hover { border-color: var(--accent); }
+  .btn-primary {
+    background: var(--accent);
+    color: #08131f;
+    border-color: var(--accent);
+    font-weight: 600;
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  .empty-note { color: var(--muted); font-size: 13px; padding: 10px 0; }
+
+  .goal-list { display: flex; flex-direction: column; gap: 14px; }
+  .goal-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .goal-card.complete { border-color: rgba(110,231,160,0.5); }
+  .goal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .goal-label { font-size: 14px; font-weight: 700; }
+  .goal-values { font-size: 12.5px; color: var(--muted); }
+  .goal-values .cur { color: var(--text); font-weight: 600; }
+  .progress-track { background: var(--panel); border: 1px solid var(--border); border-radius: 999px; height: 10px; overflow: hidden; margin-top: 10px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.3s; }
+  .progress-fill.complete { background: var(--good); }
+  .goal-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .goal-pct { font-size: 11.5px; color: var(--muted); }
+  .goal-pct.complete { color: var(--good); font-weight: 600; }
+  .del-btn { background: transparent; border: none; color: var(--muted); font-size: 14px; padding: 2px 6px; }
+  .del-btn:hover { color: var(--bad); border: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="session-log.html">Session Log</a>
+    <a href="goals.html" class="active">Goals</a>
+    <a href="droid-types.html">Droid Types</a>
+    <a href="timeline.html">Timeline</a>
+    <a href="settings.html">Settings</a>
+  </div>
+  <button type="button" id="theme-toggle" title="Toggle theme"></button>
+</nav>
+
+<h1>Droid Tycoon Goals <span class="tag">local &middot; saved in this browser</span></h1>
+<div class="sub">Set targets for any tracked stat and watch your progress bars fill in.</div>
+
+<div class="layout">
+  <div class="panel">
+    <h2>New Goal</h2>
+    <form id="goal-form">
+      <label>Metric</label>
+      <select id="g-metric"></select>
+
+      <label>Target Value</label>
+      <input type="number" id="g-target" min="0" step="any" required placeholder="e.g. 10000000">
+
+      <label>Custom Label (optional)</label>
+      <input type="text" id="g-label" placeholder="Leave blank to use metric name">
+
+      <button type="submit" class="btn-primary">Add Goal</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Progress</h2>
+    <div id="goals-container"></div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+let entries = loadEntries();
+let totals = computeTotals(entries);
+let manualTotals = loadManualTotals();
+let goals = loadGoals();
+
+const metricSel = document.getElementById('g-metric');
+metricSel.innerHTML = METRICS.map(m => `<option value="${m.id}">${escapeHtml(m.label)}</option>`).join('');
+
+function renderGoals() {
+  const container = document.getElementById('goals-container');
+  if (goals.length === 0) {
+    container.innerHTML = '<div class="empty-note">No goals yet. Add one on the left — pick a stat and a target, and it will track automatically as you log sessions.</div>';
+    return;
+  }
+
+  container.innerHTML = `<div class="goal-list">${goals.map(g => {
+    const metric = METRIC_MAP[g.metric];
+    const current = metric ? (metric.get(totals, manualTotals) || 0) : 0;
+    const target = g.target || 0;
+    const pct = target > 0 ? Math.min(100, (current / target) * 100) : 0;
+    const complete = target > 0 && current >= target;
+    const label = g.label || (metric ? metric.label : g.metric);
+    return `
+      <div class="goal-card ${complete ? 'complete' : ''}">
+        <div class="goal-head">
+          <div class="goal-label">${escapeHtml(label)}</div>
+          <button type="button" class="del-btn" data-id="${g.id}" title="Delete goal">&#10005;</button>
+        </div>
+        <div class="goal-values"><span class="cur">${fmt(current)}</span> / ${fmt(target)}</div>
+        <div class="progress-track"><div class="progress-fill ${complete ? 'complete' : ''}" style="width:${pct}%;"></div></div>
+        <div class="goal-footer">
+          <span class="goal-pct ${complete ? 'complete' : ''}">${complete ? 'Complete!' : pct.toFixed(1) + '%'}</span>
+        </div>
+      </div>
+    `;
+  }).join('')}</div>`;
+
+  container.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      goals = goals.filter(g => g.id !== btn.dataset.id);
+      saveGoals(goals);
+      renderGoals();
+    });
+  });
+}
+
+document.getElementById('goal-form').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const goal = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    metric: metricSel.value,
+    target: parseFloat(document.getElementById('g-target').value) || 0,
+    label: document.getElementById('g-label').value.trim(),
+  };
+  goals.push(goal);
+  saveGoals(goals);
+  renderGoals();
+  ev.target.reset();
+});
+
+renderGoals();
+wireThemeToggle();
+</script>
+
+</body>
+</html>

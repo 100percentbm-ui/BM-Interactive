@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Droid Tycoon Timeline</title>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('droidTycoonTheme') || 'dark');</script>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel2: #1e263a;
+    --border: #2a3450;
+    --text: #e8ecf5;
+    --muted: #93a0bd;
+    --accent: #5ec2ff;
+    --accent2: #ffb454;
+    --good: #6ee7a0;
+    --bad: #ff6b6b;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --panel2: #eef1f8;
+    --border: #d8deec;
+    --text: #1b2436;
+    --muted: #5b6684;
+    --accent: #2f7fd1;
+    --accent2: #c97a12;
+    --good: #1f9d5c;
+    --bad: #d1453a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    padding: 24px;
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  nav .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  #theme-toggle {
+    margin-left: auto;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #theme-toggle:hover { border-color: var(--accent); }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  nav a.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(94, 194, 255, 0.08);
+  }
+  nav a:hover { color: var(--text); }
+
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 .tag {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: normal;
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .sub { color: var(--muted); margin-bottom: 22px; font-size: 13px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .panel h2 {
+    font-size: 14px;
+    margin: 0 0 16px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .empty-note { color: var(--muted); font-size: 13px; padding: 10px 0; }
+
+  .timeline { position: relative; padding-left: 22px; }
+  .timeline::before { content: ''; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
+  .entry { position: relative; padding-bottom: 22px; }
+  .entry:last-child { padding-bottom: 0; }
+  .entry::before { content: ''; position: absolute; left: -22px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
+  .entry-date { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .entry-card { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .entry-milestone { font-size: 14px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
+  .entry-notes { font-size: 13px; color: var(--text); white-space: pre-wrap; }
+  .entry-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="session-log.html">Session Log</a>
+    <a href="goals.html">Goals</a>
+    <a href="droid-types.html">Droid Types</a>
+    <a href="timeline.html" class="active">Timeline</a>
+    <a href="settings.html">Settings</a>
+  </div>
+  <button type="button" id="theme-toggle" title="Toggle theme"></button>
+</nav>
+
+<h1>Droid Tycoon Timeline <span class="tag">local &middot; saved in this browser</span></h1>
+<div class="sub">Every session with a milestone or note, newest first — your run's journal.</div>
+
+<div class="panel">
+  <div id="timeline-container"></div>
+</div>
+
+<script src="common.js"></script>
+<script>
+let entries = loadEntries();
+
+function renderTimeline() {
+  const container = document.getElementById('timeline-container');
+  const notable = sortedByTimestamp(entries)
+    .filter(e => (e.milestone && e.milestone.trim()) || (e.notes && e.notes.trim()))
+    .reverse();
+
+  if (notable.length === 0) {
+    container.innerHTML = '<div class="empty-note">No milestones or notes logged yet. Add one on the Session Log page and it will show up here.</div>';
+    return;
+  }
+
+  container.innerHTML = `<div class="timeline">${notable.map(e => `
+    <div class="entry">
+      <div class="entry-date">${escapeHtml(e.date)}${e.time ? ' &middot; ' + escapeHtml(e.time) : ''}</div>
+      <div class="entry-card">
+        ${e.milestone ? `<div class="entry-milestone">${escapeHtml(e.milestone)}</div>` : ''}
+        ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ''}
+        <div class="entry-meta">
+          ${e.playtime ? `<span class="pill">${formatDuration(e.playtime)} played</span>` : ''}
+          ${e.credits ? `<span class="pill">${fmt(e.credits)} credits</span>` : ''}
+          ${e.droidType ? `<span class="pill">${escapeHtml(e.droidType)}</span>` : ''}
+          ${e.crafted ? `<span class="pill">${fmt(e.crafted)} crafted</span>` : ''}
+          ${e.rebirths ? `<span class="pill">${fmt(e.rebirths)} rebirths</span>` : ''}
+          ${e.superRebirths ? `<span class="pill">${fmt(e.superRebirths)} super rebirths</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+renderTimeline();
+wireThemeToggle();
+</script>
+
+</body>
+</html>

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Droid Tycoon Session Log</title>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('droidTycoonTheme') || 'dark');</script>
 <style>
   :root {
     --bg: #0f1420;
@@ -16,6 +17,18 @@
     --good: #6ee7a0;
     --bad: #ff6b6b;
   }
+  :root[data-theme="light"] {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --panel2: #eef1f8;
+    --border: #d8deec;
+    --text: #1b2436;
+    --muted: #5b6684;
+    --accent: #2f7fd1;
+    --accent2: #c97a12;
+    --good: #1f9d5c;
+    --bad: #d1453a;
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -26,9 +39,28 @@
   }
   nav {
     display: flex;
+    align-items: center;
     gap: 8px;
     margin-bottom: 18px;
   }
+  nav .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  #theme-toggle {
+    margin-left: auto;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #theme-toggle:hover { border-color: var(--accent); }
   nav a {
     color: var(--muted);
     text-decoration: none;
@@ -166,8 +198,15 @@
 <body>
 
 <nav>
-  <a href="dashboard.html">Dashboard</a>
-  <a href="session-log.html" class="active">Session Log</a>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="session-log.html" class="active">Session Log</a>
+    <a href="goals.html">Goals</a>
+    <a href="droid-types.html">Droid Types</a>
+    <a href="timeline.html">Timeline</a>
+    <a href="settings.html">Settings</a>
+  </div>
+  <button type="button" id="theme-toggle" title="Toggle theme"></button>
 </nav>
 
 <h1>Droid Tycoon Session Log <span class="tag">local &middot; saved in this browser</span></h1>
@@ -246,6 +285,9 @@
       <button type="submit" class="btn-primary">Add Entry</button>
     </form>
     <div class="btn-row">
+      <button type="button" id="duplicate-last">Duplicate Last Entry</button>
+    </div>
+    <div class="btn-row">
       <button type="button" id="export-json">Export JSON</button>
       <button type="button" id="export-csv">Export CSV</button>
     </div>
@@ -268,6 +310,7 @@
         <select id="filter-type"><option value="">All droid types</option></select>
         <input type="text" id="search-box" placeholder="Search notes / milestones...">
         <div class="spacer"></div>
+        <button type="button" id="delete-selected" style="display:none;">Delete Selected</button>
         <span class="pill" id="row-count">0 entries</span>
       </div>
       <div class="table-wrap">
@@ -288,6 +331,7 @@
 let entries = loadEntries();
 let sortKey = 'date';
 let sortDir = -1;
+let selectedIds = new Set();
 
 const columns = [
   { key: 'date', label: 'Date', editable: true },
@@ -342,7 +386,7 @@ function renderStats() {
 
 function renderTable() {
   const head = document.getElementById('table-head');
-  head.innerHTML = columns.map(c => `
+  head.innerHTML = '<th style="width:26px;"><input type="checkbox" id="select-all-checkbox"></th>' + columns.map(c => `
     <th data-key="${c.key}">${c.label}${sortKey === c.key ? `<span class="arrow">${sortDir === 1 ? '▲' : '▼'}</span>` : ''}</th>
   `).join('') + '<th></th>';
 
@@ -379,11 +423,21 @@ function renderTable() {
 
   const body = document.getElementById('table-body');
   document.getElementById('row-count').textContent = `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}`;
+  updateDeleteSelectedButton();
 
   if (rows.length === 0) {
-    body.innerHTML = `<tr><td colspan="${columns.length + 1}" class="empty">No entries yet. Log your first session on the left.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="${columns.length + 2}" class="empty">No entries yet. Log your first session on the left.</td></tr>`;
+    document.getElementById('select-all-checkbox').disabled = true;
     return;
   }
+  const selectAllCb = document.getElementById('select-all-checkbox');
+  selectAllCb.disabled = false;
+  selectAllCb.checked = rows.length > 0 && rows.every(e => selectedIds.has(e.id));
+  selectAllCb.addEventListener('change', () => {
+    if (selectAllCb.checked) rows.forEach(e => selectedIds.add(e.id));
+    else rows.forEach(e => selectedIds.delete(e.id));
+    renderTable();
+  });
 
   const rates = rows.map(computeRate);
   const avgRate = rates.reduce((a, b) => a + b, 0) / (rates.length || 1);
@@ -401,6 +455,7 @@ function renderTable() {
     };
     return `
       <tr>
+        <td><input type="checkbox" class="row-checkbox" data-id="${e.id}" ${selectedIds.has(e.id) ? 'checked' : ''}></td>
         ${cell(colMap.date)}
         ${cell(colMap.time)}
         ${cell(colMap.playtime)}
@@ -423,14 +478,35 @@ function renderTable() {
   body.querySelectorAll('.del-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       entries = entries.filter(e => e.id !== btn.dataset.id);
+      selectedIds.delete(btn.dataset.id);
       saveEntries(entries);
       renderAll();
+    });
+  });
+
+  body.querySelectorAll('.row-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) selectedIds.add(cb.dataset.id);
+      else selectedIds.delete(cb.dataset.id);
+      updateDeleteSelectedButton();
+      const allChecked = rows.length > 0 && rows.every(e => selectedIds.has(e.id));
+      document.getElementById('select-all-checkbox').checked = allChecked;
     });
   });
 
   body.querySelectorAll('td.editable').forEach(td => {
     td.addEventListener('click', () => startEdit(td));
   });
+}
+
+function updateDeleteSelectedButton() {
+  const btn = document.getElementById('delete-selected');
+  if (selectedIds.size > 0) {
+    btn.style.display = '';
+    btn.textContent = `Delete Selected (${selectedIds.size})`;
+  } else {
+    btn.style.display = 'none';
+  }
 }
 
 function startEdit(td) {
@@ -508,6 +584,33 @@ document.getElementById('entry-form').addEventListener('submit', (ev) => {
 document.getElementById('filter-type').addEventListener('change', renderTable);
 document.getElementById('search-box').addEventListener('input', renderTable);
 
+document.getElementById('delete-selected').addEventListener('click', () => {
+  if (selectedIds.size === 0) return;
+  if (!confirm(`Delete ${selectedIds.size} selected ${selectedIds.size === 1 ? 'entry' : 'entries'}? This cannot be undone.`)) return;
+  entries = entries.filter(e => !selectedIds.has(e.id));
+  selectedIds.clear();
+  saveEntries(entries);
+  renderAll();
+});
+
+document.getElementById('duplicate-last').addEventListener('click', () => {
+  if (entries.length === 0) return;
+  const last = sortedByTimestamp(entries)[entries.length - 1];
+  document.getElementById('f-playtime').value = formatDuration(last.playtime);
+  document.getElementById('f-credits').value = last.credits || '';
+  document.getElementById('f-crystals').value = last.crystals || '';
+  document.getElementById('f-chips').value = last.chips || '';
+  document.getElementById('f-droidtype').value = last.droidType || '';
+  document.getElementById('f-crafted').value = last.crafted || '';
+  document.getElementById('f-sold').value = last.sold || '';
+  document.getElementById('f-rebirths').value = last.rebirths || '';
+  document.getElementById('f-superrebirths').value = last.superRebirths || '';
+  document.getElementById('f-milestone').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-date').value = todayStr();
+  document.getElementById('f-time').value = nowTimeStr();
+});
+
 document.getElementById('export-json').addEventListener('click', () => {
   downloadFile('droid-tycoon-sessions.json', JSON.stringify(entries, null, 2), 'application/json');
 });
@@ -554,6 +657,7 @@ document.getElementById('import-file').addEventListener('change', (ev) => {
 document.getElementById('clear-btn').addEventListener('click', () => {
   if (confirm('Delete all logged sessions? This cannot be undone.')) {
     entries = [];
+    selectedIds.clear();
     saveEntries(entries);
     renderAll();
   }
@@ -562,6 +666,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
 document.getElementById('f-date').value = todayStr();
 document.getElementById('f-time').value = nowTimeStr();
 renderAll();
+wireThemeToggle();
 </script>
 
 </body>

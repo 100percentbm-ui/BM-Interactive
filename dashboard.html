@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Droid Tycoon Dashboard</title>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('droidTycoonTheme') || 'dark');</script>
 <style>
   :root {
     --bg: #0f1420;
@@ -16,6 +17,18 @@
     --good: #6ee7a0;
     --bad: #ff6b6b;
   }
+  :root[data-theme="light"] {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --panel2: #eef1f8;
+    --border: #d8deec;
+    --text: #1b2436;
+    --muted: #5b6684;
+    --accent: #2f7fd1;
+    --accent2: #c97a12;
+    --good: #1f9d5c;
+    --bad: #d1453a;
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -26,9 +39,28 @@
   }
   nav {
     display: flex;
+    align-items: center;
     gap: 8px;
     margin-bottom: 18px;
   }
+  nav .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  #theme-toggle {
+    margin-left: auto;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #theme-toggle:hover { border-color: var(--accent); }
   nav a {
     color: var(--muted);
     text-decoration: none;
@@ -153,6 +185,25 @@
   .chart-wrap { width: 100%; overflow-x: auto; }
   svg text { fill: var(--muted); font-size: 10px; font-family: inherit; }
 
+  /* achievements */
+  .achv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .achv {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    opacity: 0.4;
+  }
+  .achv.unlocked { opacity: 1; border-color: rgba(110,231,160,0.4); }
+  .achv .achv-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .achv .achv-title .badge { color: var(--good); }
+  .achv .achv-desc { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  /* progress bar (shared with goals page) */
+  .progress-track { background: var(--panel); border: 1px solid var(--border); border-radius: 999px; height: 8px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+  .progress-fill.complete { background: var(--good); }
+
   /* share card */
   label { display: block; font-size: 12px; color: var(--muted); margin: 4px 0 6px; }
   input[type="text"], input[type="number"] {
@@ -273,8 +324,15 @@
 <body>
 
 <nav>
-  <a href="dashboard.html" class="active">Dashboard</a>
-  <a href="session-log.html">Session Log</a>
+  <div class="nav-links">
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="session-log.html">Session Log</a>
+    <a href="goals.html">Goals</a>
+    <a href="droid-types.html">Droid Types</a>
+    <a href="timeline.html">Timeline</a>
+    <a href="settings.html">Settings</a>
+  </div>
+  <button type="button" id="theme-toggle" title="Toggle theme"></button>
 </nav>
 
 <h1>Droid Tycoon Dashboard <span class="tag">local &middot; saved in this browser</span></h1>
@@ -288,8 +346,27 @@
     </div>
 
     <div class="panel">
-      <h2>Credits / Min Trend</h2>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <h2 style="margin:0;">Trend</h2>
+        <select id="chart-metric" style="width:auto; min-width:150px;">
+          <option value="rate">Credits / Min</option>
+          <option value="credits">Credits per Session</option>
+          <option value="crystals">Nova Crystals per Session</option>
+          <option value="chips">Chips per Session</option>
+          <option value="crafted">Droids Crafted per Session</option>
+        </select>
+      </div>
       <div class="chart-wrap" id="chart-container"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Streak &amp; Personal Bests</h2>
+      <div class="stats-row-4" id="streak-bests-container"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Achievements</h2>
+      <div class="achv-grid" id="achievements-container"></div>
     </div>
   </div>
 
@@ -545,27 +622,37 @@ function renderManualEdit(key) {
   });
 }
 
+const CHART_METRICS = {
+  rate: { get: computeRate, needsPlaytime: true },
+  credits: { get: e => e.credits || 0, needsPlaytime: false },
+  crystals: { get: e => e.crystals || 0, needsPlaytime: false },
+  chips: { get: e => e.chips || 0, needsPlaytime: false },
+  crafted: { get: e => e.crafted || 0, needsPlaytime: false },
+};
+
 function renderChart() {
   const container = document.getElementById('chart-container');
-  const sorted = sortedByTimestamp(entries).filter(e => e.playtime > 0);
+  const metricKey = document.getElementById('chart-metric').value;
+  const metric = CHART_METRICS[metricKey];
+  const sorted = sortedByTimestamp(entries).filter(e => !metric.needsPlaytime || e.playtime > 0);
   if (sorted.length < 2) {
     container.innerHTML = '<div class="empty-note">Log at least two sessions to see a trend line.</div>';
     return;
   }
 
-  const rates = sorted.map(computeRate);
+  const values = sorted.map(metric.get);
   const w = Math.max(600, sorted.length * 60);
   const h = 220;
   const padL = 44, padR = 16, padT = 16, padB = 28;
-  const maxRate = Math.max(...rates) * 1.1 || 1;
-  const minRate = 0;
+  const maxVal = Math.max(...values) * 1.1 || 1;
+  const minVal = 0;
 
   const x = (i) => padL + (i / (sorted.length - 1)) * (w - padL - padR);
-  const y = (v) => padT + (1 - (v - minRate) / (maxRate - minRate)) * (h - padT - padB);
+  const y = (v) => padT + (1 - (v - minVal) / (maxVal - minVal)) * (h - padT - padB);
 
-  const points = rates.map((r, i) => `${x(i)},${y(r)}`).join(' ');
+  const points = values.map((v, i) => `${x(i)},${y(v)}`).join(' ');
   const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => {
-    const val = maxRate * f;
+    const val = maxVal * f;
     const yy = y(val);
     return `<line x1="${padL}" y1="${yy}" x2="${w - padR}" y2="${yy}" stroke="var(--border)" stroke-width="1"/>
             <text x="${padL - 8}" y="${yy + 3}" text-anchor="end">${fmt(val)}</text>`;
@@ -576,7 +663,7 @@ function renderChart() {
     return `<text x="${x(i)}" y="${h - 6}" text-anchor="middle">${escapeHtml(e.date.slice(5))}</text>`;
   }).join('');
 
-  const dots = rates.map((r, i) => `<circle cx="${x(i)}" cy="${y(r)}" r="3" fill="var(--accent)"/>`).join('');
+  const dots = values.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3" fill="var(--accent)"/>`).join('');
 
   container.innerHTML = `
     <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
@@ -586,6 +673,32 @@ function renderChart() {
       ${xLabels}
     </svg>
   `;
+}
+
+function renderStreakAndBests() {
+  const container = document.getElementById('streak-bests-container');
+  const streak = computeStreak(entries);
+  const bests = computePersonalBests(entries);
+  container.innerHTML = `
+    <div class="stat"><div class="v accent">${fmt(streak.current)}</div><div class="l">Current Streak (days)</div></div>
+    <div class="stat"><div class="v accent">${fmt(streak.longest)}</div><div class="l">Longest Streak (days)</div></div>
+    <div class="stat"><div class="v">${bests.bestCredits ? fmt(bests.bestCredits.credits) : '-'}</div><div class="l">Best Session Credits${bests.bestCredits ? ' — ' + bests.bestCredits.date : ''}</div></div>
+    <div class="stat"><div class="v">${bests.bestRate ? fmt(computeRate(bests.bestRate)) + ' cr/min' : '-'}</div><div class="l">Best Rate${bests.bestRate ? ' — ' + bests.bestRate.date : ''}</div></div>
+    <div class="stat"><div class="v">${bests.bestCrafted ? fmt(bests.bestCrafted.crafted) : '-'}</div><div class="l">Best Crafting Session${bests.bestCrafted ? ' — ' + bests.bestCrafted.date : ''}</div></div>
+    <div class="stat"><div class="v">${bests.bestPlaytime ? formatDuration(bests.bestPlaytime.playtime) : '-'}</div><div class="l">Longest Session${bests.bestPlaytime ? ' — ' + bests.bestPlaytime.date : ''}</div></div>
+  `;
+}
+
+function renderAchievements() {
+  const container = document.getElementById('achievements-container');
+  const streak = computeStreak(entries);
+  const achievements = computeAchievements({ totals, manualTotals, entries, streak });
+  container.innerHTML = achievements.map(a => `
+    <div class="achv ${a.unlocked ? 'unlocked' : ''}">
+      <div class="achv-title"><span class="badge">${a.unlocked ? '&#9733;' : '&#9734;'}</span> ${escapeHtml(a.label)}</div>
+      <div class="achv-desc">${escapeHtml(a.desc)}</div>
+    </div>
+  `).join('');
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -721,10 +834,15 @@ document.getElementById('download-card').addEventListener('click', () => {
   link.click();
 });
 
+document.getElementById('chart-metric').addEventListener('change', renderChart);
+
 renderStats();
 renderChart();
 renderShareToggles();
+renderStreakAndBests();
+renderAchievements();
 drawCard();
+wireThemeToggle();
 </script>
 
 </body>
