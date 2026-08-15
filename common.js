@@ -161,8 +161,8 @@ const DROID_LIST = [
   { name: 'IG', class: 'Iconic', rarity: 'Mythic' },
   { name: 'KX', class: 'Iconic', rarity: 'Mythic' },
   // Iconic (event-only droids)
-  { name: 'Mister Bones', class: 'Iconic', rarity: 'Iconic' },
   { name: 'BB-8', class: 'Astromech', rarity: 'Iconic' },
+  { name: 'Mister Bones', class: 'Iconic', rarity: 'Iconic' },
   { name: 'IG-11 Marshal', class: 'Iconic', rarity: 'Iconic' },
   { name: 'DJ-R3X', class: 'Iconic', rarity: 'Iconic' },
   { name: 'CB-23', class: 'Iconic', rarity: 'Iconic' },
