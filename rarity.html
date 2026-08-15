@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Droid Tycoon Rarity</title>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('droidTycoonTheme') || 'dark');</script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel2: #1e263a;
+    --border: #2a3450;
+    --text: #e8ecf5;
+    --muted: #93a0bd;
+    --accent: #5ec2ff;
+    --accent2: #ffb454;
+    --good: #6ee7a0;
+    --bad: #ff6b6b;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --panel2: #eef1f8;
+    --border: #d8deec;
+    --text: #1b2436;
+    --muted: #5b6684;
+    --accent: #2f7fd1;
+    --accent2: #c97a12;
+    --good: #1f9d5c;
+    --bad: #d1453a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    padding: 24px;
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  nav .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+  #theme-toggle {
+    margin-left: auto;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #theme-toggle:hover { border-color: var(--accent); }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  nav a.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(94, 194, 255, 0.08);
+  }
+  nav a:hover { color: var(--text); }
+
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 .tag {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: normal;
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .sub { color: var(--muted); margin-bottom: 22px; font-size: 13px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-size: 14px;
+    margin: 0 0 16px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .empty-note { color: var(--muted); font-size: 13px; padding: 10px 0; }
+  .legend { display: flex; gap: 16px; margin-bottom: 14px; font-size: 12px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  .type-row { margin-bottom: 14px; }
+  .type-row-head { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 4px; }
+  .type-row-head .name { font-weight: 700; }
+  .type-row-head .counts { color: var(--muted); }
+  .bar-track { display: flex; height: 16px; border-radius: 6px; overflow: hidden; background: var(--panel2); border: 1px solid var(--border); }
+  .bar-crafted { background: var(--accent); }
+  .bar-sold { background: var(--accent2); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 24px; }
+  table:last-child { margin-bottom: 0; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="session-log.html">Session Log</a>
+    <a href="goals.html">Goals</a>
+    <a href="rarity.html" class="active">Rarity</a>
+    <a href="timeline.html">Timeline</a>
+    <a href="settings.html">Settings</a>
+  </div>
+  <button type="button" id="theme-toggle" title="Toggle theme"></button>
+</nav>
+
+<h1>Droid Tycoon Rarity <span class="tag">local &middot; saved in this browser</span></h1>
+<div class="sub">Crafted vs. sold, broken down by droid rarity and by variant.</div>
+
+<div class="panel">
+  <h2>Crafted vs. Sold by Rarity</h2>
+  <div id="rarity-chart"></div>
+</div>
+
+<div class="panel">
+  <h2>Crafted vs. Sold by Variant</h2>
+  <div id="variant-chart"></div>
+</div>
+
+<div class="panel">
+  <h2>Full Breakdown</h2>
+  <div id="rarity-table"></div>
+  <div id="variant-table"></div>
+</div>
+
+<script src="common.js"></script>
+<script>
+let entries = loadEntries();
+const rarityBreakdown = computeRarityBreakdown(entries);
+const variantBreakdown = computeVariantBreakdown(entries);
+
+function renderBarChart(containerId, rows, keyField) {
+  const container = document.getElementById(containerId);
+  if (rows.length === 0) {
+    container.innerHTML = '<div class="empty-note">No droids logged yet. Pick a droid and variant on the Session Log page to see the breakdown here.</div>';
+    return;
+  }
+  const maxVal = Math.max(...rows.map(r => Math.max(r.crafted, r.sold))) || 1;
+  container.innerHTML = `
+    <div class="legend">
+      <span><span class="dot bar-crafted"></span> Crafted</span>
+      <span><span class="dot bar-sold"></span> Sold</span>
+    </div>
+    ${rows.map(r => `
+      <div class="type-row">
+        <div class="type-row-head">
+          <span class="name">${escapeHtml(r[keyField])}</span>
+          <span class="counts">${fmt(r.crafted)} crafted &middot; ${fmt(r.sold)} sold &middot; ${fmt(r.net)} net</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-crafted" style="width:${(r.crafted / maxVal) * 100}%;"></div>
+        </div>
+        <div class="bar-track" style="margin-top:4px;">
+          <div class="bar-sold" style="width:${(r.sold / maxVal) * 100}%;"></div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function renderBreakdownTable(containerId, rows, keyField, keyLabel) {
+  const container = document.getElementById(containerId);
+  if (rows.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr><th>${keyLabel}</th><th class="num">Crafted</th><th class="num">Sold</th><th class="num">Net Held</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${escapeHtml(r[keyField])}</td>
+            <td class="num">${fmt(r.crafted)}</td>
+            <td class="num">${fmt(r.sold)}</td>
+            <td class="num">${fmt(r.net)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+renderBarChart('rarity-chart', rarityBreakdown, 'rarity');
+renderBarChart('variant-chart', variantBreakdown, 'variant');
+renderBreakdownTable('rarity-table', rarityBreakdown, 'rarity', 'Rarity');
+renderBreakdownTable('variant-table', variantBreakdown, 'variant', 'Variant');
+wireThemeToggle();
+</script>
+
+</body>
+</html>

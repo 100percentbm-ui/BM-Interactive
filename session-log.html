@@ -6,6 +6,7 @@
 <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('droidTycoonTheme') || 'dark');</script>
 <style>
   :root {
+    color-scheme: dark;
     --bg: #0f1420;
     --panel: #171e2e;
     --panel2: #1e263a;
@@ -18,6 +19,7 @@
     --bad: #ff6b6b;
   }
   :root[data-theme="light"] {
+    color-scheme: light;
     --bg: #f4f6fb;
     --panel: #ffffff;
     --panel2: #eef1f8;
@@ -202,7 +204,7 @@
     <a href="dashboard.html">Dashboard</a>
     <a href="session-log.html" class="active">Session Log</a>
     <a href="goals.html">Goals</a>
-    <a href="droid-types.html">Droid Types</a>
+    <a href="rarity.html">Rarity</a>
     <a href="timeline.html">Timeline</a>
     <a href="settings.html">Settings</a>
   </div>
@@ -250,9 +252,21 @@
         </div>
       </div>
 
-      <label>Droid Type</label>
-      <input type="text" id="f-droidtype" list="droid-types" placeholder="e.g. Astromech">
-      <datalist id="droid-types"></datalist>
+      <label>Droid</label>
+      <select id="f-droid">
+        <option value="">Select a droid...</option>
+      </select>
+      <div class="hint" id="f-droid-rarity" style="margin-top:4px;"></div>
+
+      <label>Variant</label>
+      <select id="f-variant">
+        <option value="Default">Default</option>
+        <option value="Gold">Gold</option>
+        <option value="Diamond">Diamond</option>
+        <option value="Rainbow">Rainbow</option>
+        <option value="Beskar">Beskar</option>
+        <option value="Galactic">Galactic</option>
+      </select>
 
       <div class="row2">
         <div>
@@ -307,8 +321,25 @@
     <div class="panel">
       <h2>Session Log</h2>
       <div class="toolbar">
-        <select id="filter-type"><option value="">All droid types</option></select>
-        <input type="text" id="search-box" placeholder="Search notes / milestones...">
+        <select id="filter-rarity">
+          <option value="">All rarities</option>
+          <option value="Common">Common</option>
+          <option value="Rare">Rare</option>
+          <option value="Epic">Epic</option>
+          <option value="Legendary">Legendary</option>
+          <option value="Mythic">Mythic</option>
+          <option value="Iconic">Iconic</option>
+        </select>
+        <select id="filter-variant">
+          <option value="">All variants</option>
+          <option value="Default">Default</option>
+          <option value="Gold">Gold</option>
+          <option value="Diamond">Diamond</option>
+          <option value="Rainbow">Rainbow</option>
+          <option value="Beskar">Beskar</option>
+          <option value="Galactic">Galactic</option>
+        </select>
+        <input type="text" id="search-box" placeholder="Search notes / milestones / droid...">
         <div class="spacer"></div>
         <button type="button" id="delete-selected" style="display:none;">Delete Selected</button>
         <span class="pill" id="row-count">0 entries</span>
@@ -341,7 +372,9 @@ const columns = [
   { key: 'rate', label: 'Cr/Min' },
   { key: 'crystals', label: 'Nova' },
   { key: 'chips', label: 'Chips' },
-  { key: 'droidType', label: 'Droid' },
+  { key: 'droidName', label: 'Droid' },
+  { key: 'droidRarity', label: 'Rarity' },
+  { key: 'variant', label: 'Variant' },
   { key: 'crafted', label: 'Crafted' },
   { key: 'sold', label: 'Sold' },
   { key: 'rebirths', label: 'Rebirths' },
@@ -351,15 +384,19 @@ const columns = [
 ];
 const colMap = Object.fromEntries(columns.map(c => [c.key, c]));
 
-function updateDroidTypeOptions() {
-  const types = [...new Set(entries.map(e => e.droidType).filter(Boolean))].sort();
-  const datalist = document.getElementById('droid-types');
-  datalist.innerHTML = types.map(t => `<option value="${escapeHtml(t)}">`).join('');
-  const filterSel = document.getElementById('filter-type');
-  const current = filterSel.value;
-  filterSel.innerHTML = '<option value="">All droid types</option>' +
-    types.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
-  filterSel.value = types.includes(current) ? current : '';
+function populateDroidSelect() {
+  const sel = document.getElementById('f-droid');
+  sel.innerHTML = '<option value="">Select a droid...</option>' + RARITY_ORDER.map(rarity => {
+    const options = DROID_LIST.filter(d => d.rarity === rarity)
+      .map(d => `<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`).join('');
+    return `<optgroup label="${rarity}">${options}</optgroup>`;
+  }).join('');
+}
+
+function updateDroidRarityReadout() {
+  const name = document.getElementById('f-droid').value;
+  const droid = DROID_MAP[name];
+  document.getElementById('f-droid-rarity').textContent = droid ? `Rarity: ${droid.rarity}` : '';
 }
 
 function renderStats() {
@@ -398,13 +435,15 @@ function renderTable() {
     });
   });
 
-  const filterType = document.getElementById('filter-type').value;
+  const filterRarity = document.getElementById('filter-rarity').value;
+  const filterVariant = document.getElementById('filter-variant').value;
   const search = document.getElementById('search-box').value.toLowerCase();
 
   let rows = entries.filter(e => {
-    if (filterType && e.droidType !== filterType) return false;
+    if (filterRarity && e.droidRarity !== filterRarity) return false;
+    if (filterVariant && e.variant !== filterVariant) return false;
     if (search) {
-      const hay = `${e.notes || ''} ${e.milestone || ''} ${e.droidType || ''}`.toLowerCase();
+      const hay = `${e.notes || ''} ${e.milestone || ''} ${e.droidName || ''}`.toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
@@ -463,7 +502,9 @@ function renderTable() {
         <td class="${rateClass}">${fmt(rate)}</td>
         <td>${fmt(e.crystals)}</td>
         <td>${fmt(e.chips)}</td>
-        <td>${escapeHtml(e.droidType) || '-'}</td>
+        <td>${escapeHtml(e.droidName) || '-'}</td>
+        <td>${escapeHtml(e.droidRarity) || '-'}</td>
+        <td>${escapeHtml(e.variant) || '-'}</td>
         <td>${fmt(e.crafted)}</td>
         <td>${fmt(e.sold)}</td>
         <td>${fmt(e.rebirths)}</td>
@@ -545,7 +586,6 @@ function startEdit(td) {
 }
 
 function renderAll() {
-  updateDroidTypeOptions();
   renderStats();
   renderTable();
 }
@@ -557,6 +597,7 @@ document.getElementById('entry-form').addEventListener('submit', (ev) => {
     alert('Could not read that playtime. Use a combo of d/h/m/s, e.g. "1h 30m" or "45m".');
     return;
   }
+  const droidName = document.getElementById('f-droid').value;
   const entry = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
     date: document.getElementById('f-date').value,
@@ -565,7 +606,9 @@ document.getElementById('entry-form').addEventListener('submit', (ev) => {
     credits: parseFloat(document.getElementById('f-credits').value) || 0,
     crystals: parseFloat(document.getElementById('f-crystals').value) || 0,
     chips: parseFloat(document.getElementById('f-chips').value) || 0,
-    droidType: document.getElementById('f-droidtype').value.trim(),
+    droidName,
+    droidRarity: DROID_MAP[droidName] ? DROID_MAP[droidName].rarity : '',
+    variant: document.getElementById('f-variant').value,
     crafted: parseFloat(document.getElementById('f-crafted').value) || 0,
     sold: parseFloat(document.getElementById('f-sold').value) || 0,
     rebirths: parseFloat(document.getElementById('f-rebirths').value) || 0,
@@ -579,9 +622,13 @@ document.getElementById('entry-form').addEventListener('submit', (ev) => {
   ev.target.reset();
   document.getElementById('f-date').value = todayStr();
   document.getElementById('f-time').value = nowTimeStr();
+  document.getElementById('f-variant').value = 'Default';
+  updateDroidRarityReadout();
 });
 
-document.getElementById('filter-type').addEventListener('change', renderTable);
+document.getElementById('f-droid').addEventListener('change', updateDroidRarityReadout);
+document.getElementById('filter-rarity').addEventListener('change', renderTable);
+document.getElementById('filter-variant').addEventListener('change', renderTable);
 document.getElementById('search-box').addEventListener('input', renderTable);
 
 document.getElementById('delete-selected').addEventListener('click', () => {
@@ -600,7 +647,8 @@ document.getElementById('duplicate-last').addEventListener('click', () => {
   document.getElementById('f-credits').value = last.credits || '';
   document.getElementById('f-crystals').value = last.crystals || '';
   document.getElementById('f-chips').value = last.chips || '';
-  document.getElementById('f-droidtype').value = last.droidType || '';
+  document.getElementById('f-droid').value = last.droidName || '';
+  document.getElementById('f-variant').value = last.variant || 'Default';
   document.getElementById('f-crafted').value = last.crafted || '';
   document.getElementById('f-sold').value = last.sold || '';
   document.getElementById('f-rebirths').value = last.rebirths || '';
@@ -609,6 +657,7 @@ document.getElementById('duplicate-last').addEventListener('click', () => {
   document.getElementById('f-notes').value = '';
   document.getElementById('f-date').value = todayStr();
   document.getElementById('f-time').value = nowTimeStr();
+  updateDroidRarityReadout();
 });
 
 document.getElementById('export-json').addEventListener('click', () => {
@@ -616,10 +665,10 @@ document.getElementById('export-json').addEventListener('click', () => {
 });
 
 document.getElementById('export-csv').addEventListener('click', () => {
-  const headers = ['date','time','playtime','credits','rate','crystals','chips','droidType','crafted','sold','rebirths','superRebirths','milestone','notes'];
+  const headers = ['date','time','playtime','credits','rate','crystals','chips','droidName','rarity','variant','crafted','sold','rebirths','superRebirths','milestone','notes'];
   const lines = [headers.join(',')];
   entries.forEach(e => {
-    const row = [e.date, e.time, e.playtime, e.credits, computeRate(e).toFixed(2), e.crystals, e.chips, e.droidType, e.crafted, e.sold, e.rebirths, e.superRebirths, e.milestone, e.notes]
+    const row = [e.date, e.time, e.playtime, e.credits, computeRate(e).toFixed(2), e.crystals, e.chips, e.droidName, e.droidRarity, e.variant, e.crafted, e.sold, e.rebirths, e.superRebirths, e.milestone, e.notes]
       .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`);
     lines.push(row.join(','));
   });
@@ -665,6 +714,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
 
 document.getElementById('f-date').value = todayStr();
 document.getElementById('f-time').value = nowTimeStr();
+populateDroidSelect();
 renderAll();
 wireThemeToggle();
 </script>

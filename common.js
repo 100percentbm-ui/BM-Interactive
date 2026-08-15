@@ -89,6 +89,89 @@ function saveGoals(goals) {
   localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
 }
 
+const VARIANTS = ['Default', 'Gold', 'Diamond', 'Rainbow', 'Beskar', 'Galactic'];
+
+const RARITY_ORDER = ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Iconic'];
+
+const DROID_LIST = [
+  // Common
+  { name: 'Mouse', class: 'Worker', rarity: 'Common' },
+  { name: 'Pit', class: 'Worker', rarity: 'Common' },
+  { name: 'Gonk', class: 'Worker', rarity: 'Common' },
+  { name: 'CB', class: 'Astromech', rarity: 'Common' },
+  { name: 'R3', class: 'Astromech', rarity: 'Common' },
+  { name: 'R5', class: 'Astromech', rarity: 'Common' },
+  { name: 'R8', class: 'Astromech', rarity: 'Common' },
+  { name: 'Imperial Probe', class: 'Battle', rarity: 'Common' },
+  { name: 'B1 Battle', class: 'Battle', rarity: 'Common' },
+  { name: 'DRK-1 Probe', class: 'Battle', rarity: 'Common' },
+  { name: 'ID10', class: 'Battle', rarity: 'Common' },
+  // Rare
+  { name: 'BDX Explorer', class: 'Worker', rarity: 'Rare' },
+  { name: 'ARG', class: 'Worker', rarity: 'Rare' },
+  { name: 'Senate Hovercam', class: 'Worker', rarity: 'Rare' },
+  { name: 'BU-4D', class: 'Worker', rarity: 'Rare' },
+  { name: 'Bal-Core', class: 'Worker', rarity: 'Rare' },
+  { name: 'ROLL-R', class: 'Worker', rarity: 'Rare' },
+  { name: '2BB', class: 'Astromech', rarity: 'Rare' },
+  { name: 'A-LT', class: 'Astromech', rarity: 'Rare' },
+  { name: 'R4', class: 'Astromech', rarity: 'Rare' },
+  { name: 'R9', class: 'Astromech', rarity: 'Rare' },
+  { name: 'B1 Security', class: 'Battle', rarity: 'Rare' },
+  { name: 'NAV-EX', class: 'Battle', rarity: 'Rare' },
+  { name: 'VECT-Arm', class: 'Battle', rarity: 'Rare' },
+  { name: 'HOV-R', class: 'Battle', rarity: 'Rare' },
+  // Epic
+  { name: 'Groundmech', class: 'Worker', rarity: 'Epic' },
+  { name: 'LO', class: 'Worker', rarity: 'Epic' },
+  { name: 'AMP Walker', class: 'Worker', rarity: 'Epic' },
+  { name: 'SEN-TRI', class: 'Worker', rarity: 'Epic' },
+  { name: 'Opti-Pod', class: 'Worker', rarity: 'Epic' },
+  { name: 'BB', class: 'Astromech', rarity: 'Epic' },
+  { name: 'R2', class: 'Astromech', rarity: 'Epic' },
+  { name: 'R6', class: 'Astromech', rarity: 'Epic' },
+  { name: 'TRAK-R', class: 'Astromech', rarity: 'Epic' },
+  { name: 'ORB-Walker', class: 'Astromech', rarity: 'Epic' },
+  { name: 'Util-Tec', class: 'Astromech', rarity: 'Epic' },
+  { name: 'B1 Heavy', class: 'Battle', rarity: 'Epic' },
+  { name: 'B2 Super', class: 'Battle', rarity: 'Epic' },
+  { name: 'B2 Heavy', class: 'Battle', rarity: 'Epic' },
+  { name: 'Strike-Orb', class: 'Battle', rarity: 'Epic' },
+  { name: 'Haul-R', class: 'Battle', rarity: 'Epic' },
+  { name: 'LNG-Shot', class: 'Battle', rarity: 'Epic' },
+  { name: 'Proto-Roller', class: 'Battle', rarity: 'Epic' },
+  // Legendary
+  { name: 'Mecha-Droid', class: 'Worker', rarity: 'Legendary' },
+  { name: 'Mono-WLKR', class: 'Worker', rarity: 'Legendary' },
+  { name: 'BB9', class: 'Astromech', rarity: 'Legendary' },
+  { name: 'R7', class: 'Astromech', rarity: 'Legendary' },
+  { name: 'B2-RP', class: 'Battle', rarity: 'Legendary' },
+  { name: 'Cyclo-Grav', class: 'Battle', rarity: 'Legendary' },
+  { name: 'Opti-STRK', class: 'Battle', rarity: 'Legendary' },
+  // Mythic
+  { name: 'BB-8', class: 'Astromech', rarity: 'Mythic' },
+  { name: 'Snow Mouse', class: 'Worker', rarity: 'Mythic' },
+  // Iconic (rebirth-tier unlocks)
+  { name: 'RIC', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'LOADLIFTER', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'LEP', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'RIC-1200', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'DRFT-R', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'CYCLENS', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'MO-TRAK', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'TRI-TEK', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'IG', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'KX', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'Mister Bones', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'IG-11 Marshal', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'DJ-R3X', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'CB-23', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'R2-D2', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'C-3PO', class: 'Iconic', rarity: 'Iconic' },
+  { name: 'Chopper', class: 'Iconic', rarity: 'Iconic' },
+];
+const DROID_MAP = Object.fromEntries(DROID_LIST.map(d => [d.name, d]));
+
 const METRICS = [
   { id: 'totalCredits', label: 'Total Credits', get: (t, m) => t.totalCredits },
   { id: 'totalCrystals', label: 'Total Nova Crystals', get: (t, m) => t.totalCrystals },
@@ -132,17 +215,30 @@ function computeStreak(entries) {
   return { current, longest };
 }
 
-function computeDroidBreakdown(entries) {
-  const byType = {};
+function computeRarityBreakdown(entries) {
+  const byRarity = {};
   entries.forEach(e => {
-    if (!e.droidType) return;
-    if (!byType[e.droidType]) byType[e.droidType] = { type: e.droidType, crafted: 0, sold: 0 };
-    byType[e.droidType].crafted += e.crafted || 0;
-    byType[e.droidType].sold += e.sold || 0;
+    if (!e.droidRarity) return;
+    if (!byRarity[e.droidRarity]) byRarity[e.droidRarity] = { rarity: e.droidRarity, crafted: 0, sold: 0 };
+    byRarity[e.droidRarity].crafted += e.crafted || 0;
+    byRarity[e.droidRarity].sold += e.sold || 0;
   });
-  return Object.values(byType)
+  return Object.values(byRarity)
     .map(r => ({ ...r, net: r.crafted - r.sold }))
-    .sort((a, b) => b.crafted - a.crafted);
+    .sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity));
+}
+
+function computeVariantBreakdown(entries) {
+  const byVariant = {};
+  entries.forEach(e => {
+    if (!e.variant) return;
+    if (!byVariant[e.variant]) byVariant[e.variant] = { variant: e.variant, crafted: 0, sold: 0 };
+    byVariant[e.variant].crafted += e.crafted || 0;
+    byVariant[e.variant].sold += e.sold || 0;
+  });
+  return Object.values(byVariant)
+    .map(r => ({ ...r, net: r.crafted - r.sold }))
+    .sort((a, b) => VARIANTS.indexOf(a.variant) - VARIANTS.indexOf(b.variant));
 }
 
 function computePersonalBests(entries) {
@@ -265,16 +361,16 @@ function computeTotals(entries) {
 
   const best = entries.reduce((b, e) => computeRate(e) > (b ? computeRate(b) : -1) ? e : b, null);
 
-  const craftedByType = {};
+  const craftedByRarity = {};
   entries.forEach(e => {
-    if (e.droidType && e.crafted) {
-      craftedByType[e.droidType] = (craftedByType[e.droidType] || 0) + e.crafted;
+    if (e.droidRarity && e.crafted) {
+      craftedByRarity[e.droidRarity] = (craftedByRarity[e.droidRarity] || 0) + e.crafted;
     }
   });
-  let topDroidType = '-';
-  let topDroidCount = -1;
-  Object.entries(craftedByType).forEach(([type, count]) => {
-    if (count > topDroidCount) { topDroidType = type; topDroidCount = count; }
+  let topRarity = '-';
+  let topRarityCount = -1;
+  Object.entries(craftedByRarity).forEach(([rarity, count]) => {
+    if (count > topRarityCount) { topRarity = rarity; topRarityCount = count; }
   });
 
   const timestamps = entries
@@ -287,7 +383,7 @@ function computeTotals(entries) {
   return {
     sessions, totalPlaytime, totalCredits, totalCrystals, totalChips, totalCrafted, totalSold,
     totalRebirths, totalSuperRebirths,
-    avgRate, best, topDroidType, topDroidCount, firstDate, lastDate,
+    avgRate, best, topRarity, topRarityCount, firstDate, lastDate,
   };
 }
 

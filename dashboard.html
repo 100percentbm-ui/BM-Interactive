@@ -6,6 +6,7 @@
 <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('droidTycoonTheme') || 'dark');</script>
 <style>
   :root {
+    color-scheme: dark;
     --bg: #0f1420;
     --panel: #171e2e;
     --panel2: #1e263a;
@@ -18,6 +19,7 @@
     --bad: #ff6b6b;
   }
   :root[data-theme="light"] {
+    color-scheme: light;
     --bg: #f4f6fb;
     --panel: #ffffff;
     --panel2: #eef1f8;
@@ -328,7 +330,7 @@
     <a href="dashboard.html" class="active">Dashboard</a>
     <a href="session-log.html">Session Log</a>
     <a href="goals.html">Goals</a>
-    <a href="droid-types.html">Droid Types</a>
+    <a href="rarity.html">Rarity</a>
     <a href="timeline.html">Timeline</a>
     <a href="settings.html">Settings</a>
   </div>
@@ -542,7 +544,7 @@ function renderStats() {
       <div class="stat"><div class="v">${fmt(netDroids)}</div><div class="l">Net Held</div></div>
     </div>
     <div class="stats-row" style="margin-top:12px;">
-      <div class="stat" style="grid-column: span 3;"><div class="v">${escapeHtml(totals.topDroidType)}</div><div class="l">Most-Crafted Type (${fmt(totals.topDroidCount)})</div></div>
+      <div class="stat" style="grid-column: span 3;"><div class="v">${escapeHtml(totals.topRarity)}</div><div class="l">Most-Crafted Rarity (${fmt(totals.topRarityCount)})</div></div>
     </div>
 
     <div class="section-label">Rebirths (Total)</div>
